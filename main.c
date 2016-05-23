@@ -16,7 +16,35 @@
 
 #include "ch.h"
 #include "hal.h"
-#include "test.h"
+#include "usbcfg.h"
+
+#include "shell.h"
+#include "chprintf.h"
+
+/*
+ * DP resistor control is not possible on the STM32F3-Discovery, using stubs
+ * for the connection macros.
+ */
+#define usb_lld_connect_bus(usbp)
+#define usb_lld_disconnect_bus(usbp)
+
+#define SHELL_WA_SIZE   THD_WORKING_AREA_SIZE(2048)
+
+static void cmd_ddc (BaseSequentialStream *chp, int argc, char *argv[]) {
+  (void)argv;
+  chprintf(chp, "Dummy DDC command\r\n");
+}
+
+static const ShellCommand commands[] = {
+  {"ddc", cmd_ddc},
+  {NULL, NULL}
+};
+
+
+static const ShellConfig shell_cfg1 = {
+  (BaseSequentialStream *)&SDU1,
+  commands
+};
 
 /*
  * Blinker thread #1.
@@ -48,38 +76,11 @@ static THD_FUNCTION(Thread1, arg) {
 }
 
 /*
- * Blinker thread #2.
- */
-static THD_WORKING_AREA(waThread2, 128);
-static THD_FUNCTION(Thread2, arg) {
-
-  (void)arg;
-
-  chRegSetThreadName("blinker");
-  while (true) {
-    chThdSleepMilliseconds(125);
-    palSetPad(GPIOE, GPIOE_LED5_ORANGE);
-    chThdSleepMilliseconds(125);
-    palClearPad(GPIOE, GPIOE_LED5_ORANGE);
-    chThdSleepMilliseconds(125);
-    palSetPad(GPIOE, GPIOE_LED9_BLUE);
-    chThdSleepMilliseconds(125);
-    palClearPad(GPIOE, GPIOE_LED9_BLUE);
-    chThdSleepMilliseconds(125);
-    palSetPad(GPIOE, GPIOE_LED8_ORANGE);
-    chThdSleepMilliseconds(125);
-    palClearPad(GPIOE, GPIOE_LED8_ORANGE);
-    chThdSleepMilliseconds(125);
-    palSetPad(GPIOE, GPIOE_LED4_BLUE);
-    chThdSleepMilliseconds(125);
-    palClearPad(GPIOE, GPIOE_LED4_BLUE);
-  }
-}
-
-/*
  * Application entry point.
  */
 int main(void) {
+
+  thread_t *shelltp = NULL;
 
   /*
    * System initializations.
@@ -92,27 +93,42 @@ int main(void) {
   chSysInit();
 
   /*
-   * Activates the serial driver 1 using the driver default configuration.
-   * PA9(TX) and PA10(RX) are routed to USART1.
+   * Initializes a serial-over-USB CDC driver.
    */
-  sdStart(&SD1, NULL);
-  palSetPadMode(GPIOA, 9, PAL_MODE_ALTERNATE(7));
-  palSetPadMode(GPIOA, 10, PAL_MODE_ALTERNATE(7));
+  sduObjectInit(&SDU1);
+  sduStart(&SDU1, &serusbcfg);
+
+  /*
+   * Activates the USB driver and then the USB bus pull-up on D+.
+   * Note, a delay is inserted in order to not have to disconnect the cable
+   * after a reset.
+   */
+  usbDisconnectBus(serusbcfg.usbp);
+  chThdSleepMilliseconds(1500);
+  usbStart(serusbcfg.usbp, &usbcfg);
+  usbConnectBus(serusbcfg.usbp);
+
+  /*
+   * Shell manager initialization.
+   */
+  shellInit();
 
   /*
    * Creates the example threads.
    */
   chThdCreateStatic(waThread1, sizeof(waThread1), NORMALPRIO+1, Thread1, NULL);
-  chThdCreateStatic(waThread2, sizeof(waThread2), NORMALPRIO+1, Thread2, NULL);
 
   /*
    * Normal main() thread activity, in this demo it does nothing except
-   * sleeping in a loop and check the button state, when the button is
-   * pressed the test procedure is launched.
+   * sleeping in a loop 
    */
   while (true) {
-    if (palReadPad(GPIOA, GPIOA_BUTTON))
-      TestThread(&SD1);
-    chThdSleepMilliseconds(500);
+    if (!shelltp && (SDU1.config->usbp->state == USB_ACTIVE))
+      shelltp = shellCreate(&shell_cfg1, SHELL_WA_SIZE, NORMALPRIO);
+    else if (chThdTerminatedX(shelltp)) {
+      chThdRelease(shelltp);    /* Recovers memory of the previous shell.   */
+      shelltp = NULL;           /* Triggers spawning of a new shell.        */
+    }
+    chThdSleepMilliseconds(1000);
   }
 }
