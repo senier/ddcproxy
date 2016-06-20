@@ -30,9 +30,45 @@
 
 #define SHELL_WA_SIZE   THD_WORKING_AREA_SIZE(2048)
 
-static void cmd_ddc (BaseSequentialStream *chp, int argc, char *argv[]) {
+static void cmd_ddc (BaseSequentialStream *chp, int argc, char *argv[])
+{
+
   (void)argv;
-  chprintf(chp, "Dummy DDC command\r\n");
+
+    msg_t status;
+    static const uint8_t cmd[] = {0xde, 0xad};
+    uint8_t data[16];
+    static i2cflags_t errors = 0;
+
+    if (argc != 1)
+    {
+        chprintf(chp, "Invalid arguments (expected 1, got %d)\r\n", argc);
+        return;
+    }
+    uint8_t addr = atoi(argv[0]);
+
+    chprintf(chp, "Sending command to %x\r\n", addr);
+    i2cAcquireBus(&I2CD1);
+    // 2a
+    status = i2cMasterTransmitTimeout(&I2CD1, addr, cmd, sizeof(cmd), data, sizeof(data), TIME_INFINITE);
+    i2cReleaseBus(&I2CD1);
+
+    switch (status)
+    {
+        case MSG_RESET:
+            errors = i2cGetErrors(&I2CD1);
+            chprintf(chp, "Error sending I2C command (%x)\r\n", errors);
+            break;
+        case MSG_TIMEOUT:
+            chprintf(chp, "Timeout sending I2C command.\r\n");
+            break;
+        case MSG_OK:
+            chprintf(chp, "Done sending I2C command\r\n");
+            break;
+        default:
+            chprintf(chp, "??? Invalid i2cMasterTransmitTimeout result code.\r\n");
+            break;
+    }
 }
 
 static const ShellCommand commands[] = {
@@ -44,6 +80,17 @@ static const ShellCommand commands[] = {
 static const ShellConfig shell_cfg1 = {
   (BaseSequentialStream *)&SDU1,
   commands
+};
+
+static const I2CConfig i2cconfig = {
+    .timingr = 
+        STM32_TIMINGR_PRESC  (15U) |
+        STM32_TIMINGR_SCLDEL  (4U) |
+        STM32_TIMINGR_SDADEL  (2U) |
+        STM32_TIMINGR_SCLH   (15U) |
+        STM32_TIMINGR_SCLL   (21U),
+    .cr1 = 0,
+    .cr2 = 0
 };
 
 /*
@@ -114,6 +161,13 @@ int main(void) {
   shellInit();
 
   /*
+   * Initialize I2C
+   */
+  palSetPadMode(GPIOA, 14, PAL_MODE_ALTERNATE(4) | PAL_STM32_OTYPE_OPENDRAIN);   /* I2C1 SDA */
+  palSetPadMode(GPIOA, 15, PAL_MODE_ALTERNATE(4) | PAL_STM32_OTYPE_OPENDRAIN);   /* I2C1 SCL */
+  i2cStart(&I2CD1, &i2cconfig);
+
+  /*
    * Creates the example threads.
    */
   chThdCreateStatic(waThread1, sizeof(waThread1), NORMALPRIO+1, Thread1, NULL);
@@ -123,12 +177,13 @@ int main(void) {
    * sleeping in a loop 
    */
   while (true) {
+
     if (!shelltp && (SDU1.config->usbp->state == USB_ACTIVE))
       shelltp = shellCreate(&shell_cfg1, SHELL_WA_SIZE, NORMALPRIO);
     else if (chThdTerminatedX(shelltp)) {
       chThdRelease(shelltp);    /* Recovers memory of the previous shell.   */
       shelltp = NULL;           /* Triggers spawning of a new shell.        */
     }
-    chThdSleepMilliseconds(1000);
+    chThdSleepMilliseconds(200);
   }
 }
