@@ -48,15 +48,14 @@ static void cmd_ddc (BaseSequentialStream *chp, int argc, char *argv[])
     uint8_t addr = atoi(argv[0]);
 
     chprintf(chp, "Sending command to %x\r\n", addr);
-    i2cAcquireBus(&I2CD1);
-    // 2a
-    status = i2cMasterTransmitTimeout(&I2CD1, addr, cmd, sizeof(cmd), data, sizeof(data), TIME_INFINITE);
-    i2cReleaseBus(&I2CD1);
+    //i2cAcquireBus(&I2CD1);
+    status = i2cMasterTransmitTimeout(&I2CD2, addr, cmd, sizeof(cmd), data, sizeof(data), TIME_INFINITE);
+    //i2cReleaseBus(&I2CD1);
 
     switch (status)
     {
         case MSG_RESET:
-            errors = i2cGetErrors(&I2CD1);
+            errors = i2cGetErrors(&I2CD2);
             chprintf(chp, "Error sending I2C command (%x)\r\n", errors);
             break;
         case MSG_TIMEOUT:
@@ -165,7 +164,9 @@ int main(void) {
    */
   palSetPadMode(GPIOA, 14, PAL_MODE_ALTERNATE(4) | PAL_STM32_OTYPE_OPENDRAIN);   /* I2C1 SDA */
   palSetPadMode(GPIOA, 15, PAL_MODE_ALTERNATE(4) | PAL_STM32_OTYPE_OPENDRAIN);   /* I2C1 SCL */
-  i2cStart(&I2CD1, &i2cconfig);
+  palSetPadMode(GPIOA,  9, PAL_MODE_ALTERNATE(4) | PAL_STM32_OTYPE_OPENDRAIN);   /* I2C2 SCL */
+  palSetPadMode(GPIOA, 10, PAL_MODE_ALTERNATE(4) | PAL_STM32_OTYPE_OPENDRAIN);   /* I2C2 SDA */
+  i2cStart(&I2CD2, &i2cconfig);
 
   /*
    * Creates the example threads.

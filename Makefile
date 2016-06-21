@@ -220,3 +220,6 @@ include $(RULESPATH)/rules.mk
 
 flash: build/ch.bin
 	st-flash write $< 0x8000000
+
+dfu: build/ch.bin
+	dfu-util -R -a 0 -s 0x8000000 -D $<
