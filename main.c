@@ -30,6 +30,18 @@
 
 #define SHELL_WA_SIZE   THD_WORKING_AREA_SIZE(2048)
 
+static const I2CConfig i2cconfig = {
+    .timingr = 
+        STM32_TIMINGR_PRESC  (15U) |
+        STM32_TIMINGR_SCLDEL  (4U) |
+        STM32_TIMINGR_SDADEL  (2U) |
+        STM32_TIMINGR_SCLH   (15U) |
+        STM32_TIMINGR_SCLL   (21U),
+    .cr1 = 0,
+    .cr2 = 0
+};
+
+
 static void cmd_ddc (BaseSequentialStream *chp, int argc, char *argv[])
 {
 
@@ -37,7 +49,7 @@ static void cmd_ddc (BaseSequentialStream *chp, int argc, char *argv[])
 
     msg_t status;
     static const uint8_t cmd[] = {0xde, 0xad};
-    uint8_t data[16];
+    uint8_t data[] = {'d', 'e', 'a', 'd', 'b', 'e', 'e', 'f', 'd', 'e', 'a', 'd', 'c', 'o', 'd', 'e'};
     static i2cflags_t errors = 0;
 
     if (argc != 1)
@@ -48,14 +60,16 @@ static void cmd_ddc (BaseSequentialStream *chp, int argc, char *argv[])
     uint8_t addr = atoi(argv[0]);
 
     chprintf(chp, "Sending command to %x\r\n", addr);
-    //i2cAcquireBus(&I2CD1);
-    status = i2cMasterTransmitTimeout(&I2CD2, addr, cmd, sizeof(cmd), data, sizeof(data), TIME_INFINITE);
-    //i2cReleaseBus(&I2CD1);
+    i2cAcquireBus(&I2CD1);
+    i2cStart(&I2CD1, &i2cconfig);
+    status = i2cMasterTransmitTimeout(&I2CD1, addr, cmd, sizeof(cmd), data, sizeof(data), TIME_INFINITE);
+    i2cStop(&I2CD1);
+    i2cReleaseBus(&I2CD1);
 
     switch (status)
     {
         case MSG_RESET:
-            errors = i2cGetErrors(&I2CD2);
+            errors = i2cGetErrors(&I2CD1);
             chprintf(chp, "Error sending I2C command (%x)\r\n", errors);
             break;
         case MSG_TIMEOUT:
@@ -79,17 +93,6 @@ static const ShellCommand commands[] = {
 static const ShellConfig shell_cfg1 = {
   (BaseSequentialStream *)&SDU1,
   commands
-};
-
-static const I2CConfig i2cconfig = {
-    .timingr = 
-        STM32_TIMINGR_PRESC  (15U) |
-        STM32_TIMINGR_SCLDEL  (4U) |
-        STM32_TIMINGR_SDADEL  (2U) |
-        STM32_TIMINGR_SCLH   (15U) |
-        STM32_TIMINGR_SCLL   (21U),
-    .cr1 = 0,
-    .cr2 = 0
 };
 
 /*
@@ -166,7 +169,6 @@ int main(void) {
   palSetPadMode(GPIOA, 15, PAL_MODE_ALTERNATE(4) | PAL_STM32_OTYPE_OPENDRAIN);   /* I2C1 SCL */
   palSetPadMode(GPIOA,  9, PAL_MODE_ALTERNATE(4) | PAL_STM32_OTYPE_OPENDRAIN);   /* I2C2 SCL */
   palSetPadMode(GPIOA, 10, PAL_MODE_ALTERNATE(4) | PAL_STM32_OTYPE_OPENDRAIN);   /* I2C2 SDA */
-  i2cStart(&I2CD2, &i2cconfig);
 
   /*
    * Creates the example threads.
