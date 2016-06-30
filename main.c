@@ -17,6 +17,7 @@
 #include "ch.h"
 #include "hal.h"
 #include "usbcfg.h"
+#include "bbi2c.h"
 
 #include "shell.h"
 #include "chprintf.h"
@@ -125,6 +126,26 @@ static THD_FUNCTION(Thread1, arg) {
 }
 
 /*
+ * Software I2C thread
+ */
+static THD_WORKING_AREA(swI2C, 128);
+static THD_FUNCTION(swI2CThread, arg) {
+
+    BBI2C_t i2cdev;
+    chRegSetThreadName("swI2C");
+
+    BBI2C_Init (&i2cdev, GPIOC, 10, GPIOC, 11, 100000);
+    while (true)
+    {
+        BBI2C_Start (&i2cdev);
+        BBI2C_Send_Byte (&i2cdev, 0x50);
+        BBI2C_Send_Byte (&i2cdev, 0xea);
+        BBI2C_Stop (&i2cdev);
+        chThdSleepMilliseconds(100);
+    }
+}
+
+/*
  * Application entry point.
  */
 int main(void) {
@@ -171,9 +192,16 @@ int main(void) {
   palSetPadMode(GPIOA, 10, PAL_MODE_ALTERNATE(4) | PAL_STM32_OTYPE_OPENDRAIN);   /* I2C2 SDA */
 
   /*
+   * MCO
+   */
+  palSetPadMode(GPIOA, 8, PAL_MODE_ALTERNATE(0));
+  
+
+  /*
    * Creates the example threads.
    */
-  chThdCreateStatic(waThread1, sizeof(waThread1), NORMALPRIO+1, Thread1, NULL);
+  //chThdCreateStatic(waThread1, sizeof(waThread1), NORMALPRIO+1, Thread1, NULL);
+  chThdCreateStatic(swI2C, sizeof(swI2C), NORMALPRIO+10, swI2CThread, NULL);
 
   /*
    * Normal main() thread activity, in this demo it does nothing except

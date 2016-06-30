@@ -1,0 +1,2 @@
+* An external pull-up of 4k7 is required (check)
+* Some suggest to use a 100R series resistor
