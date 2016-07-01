@@ -8,8 +8,6 @@ static inline void Delay_us (uint32_t interval)
         __asm__ volatile
         (
             "nop\n\t"
-            "nop\n\t"
-            "nop\n\t"
             :::
         );
     }
@@ -17,7 +15,14 @@ static inline void Delay_us (uint32_t interval)
 
 int Read_SDA (BBI2C_t *dev)
 {
-    return palReadPad (dev->sda_gpio, dev->sda_pin);
+    int result;
+    result = palReadPad (dev->sda_gpio, dev->sda_pin);
+    return result;
+};
+
+int Read_SCL (BBI2C_t *dev)
+{
+    return palReadPad (dev->scl_gpio, dev->scl_pin);
 };
 
 void Drive_SDA (BBI2C_t *dev, int sda)
@@ -44,6 +49,12 @@ void Drive_SCL (BBI2C_t *dev, int scl)
     }
 }
 
+void Release_SCL (BBI2C_t *dev)
+{
+    Drive_SCL (dev, 1);
+    while (!Read_SCL (dev));
+}
+
 void BBI2C_Init
     (BBI2C_t *dev,
      stm32_gpio_t *sda_gpio,
@@ -56,27 +67,32 @@ void BBI2C_Init
     dev->sda_pin  = sda_pin;
     dev->scl_gpio = scl_gpio;
     dev->scl_pin  = scl_pin;
-    dev->delay_us = 1000000 / frequency / 2;
+    dev->delay_us = 1000000 / frequency / 3;
 
     palSetPadMode(dev->scl_gpio, dev->scl_pin, PAL_MODE_OUTPUT_OPENDRAIN | PAL_STM32_OSPEED_HIGHEST);
     palSetPadMode(dev->sda_gpio, dev->sda_pin, PAL_MODE_OUTPUT_OPENDRAIN | PAL_STM32_OSPEED_HIGHEST);
 
     Drive_SDA (dev, 1);
-    Drive_SCL (dev, 1);
+    Release_SCL (dev);
 }
 
 void BBI2C_Start (BBI2C_t *dev)
 {
+    Release_SCL (dev);
+    Drive_SDA (dev, 1);
+    Delay_us (dev->delay_us);
     Drive_SDA (dev, 0);
-    Delay_us (dev->delay_us/4);
-    Drive_SCL (dev, 0);
+    Delay_us (dev->delay_us);
 }
 
 void BBI2C_Stop (BBI2C_t *dev)
 {
-    Drive_SCL (dev, 1);
-    Delay_us (dev->delay_us/4);
+    Drive_SDA (dev, 0);
+    Delay_us (dev->delay_us);
+    Release_SCL (dev);
+    Delay_us (dev->delay_us);
     Drive_SDA (dev, 1);
+    Delay_us (dev->delay_us);
 }
 
 void BBI2C_Ack (BBI2C_t *dev)
@@ -97,6 +113,8 @@ void BBI2C_NACK (BBI2C_t *dev)
 
 int BBI2C_Send_Byte (BBI2C_t *dev, uint8_t data)
 {
+    Drive_SCL (dev, 0);
+
     unsigned char i, ack_bit;
     for (i = 0; i < 8; i++)
     {
@@ -108,7 +126,9 @@ int BBI2C_Send_Byte (BBI2C_t *dev, uint8_t data)
         {
             Drive_SDA (dev, 1);
         }
-        Drive_SCL (dev, 1);
+
+        Delay_us (dev->delay_us);
+        Release_SCL (dev);
         Delay_us (dev->delay_us);
         Drive_SCL (dev, 0);
         Delay_us (dev->delay_us);
@@ -116,35 +136,51 @@ int BBI2C_Send_Byte (BBI2C_t *dev, uint8_t data)
      }
 
      Drive_SDA (dev, 1);
-
-     Drive_SCL (dev, 1);
      Delay_us (dev->delay_us);
+     Release_SCL (dev);
      ack_bit = Read_SDA (dev);
-     Drive_SCL (dev, 0);
-     Delay_us (dev->delay_us);
 
-     return ack_bit;
+     Delay_us (dev->delay_us);
+     Drive_SCL (dev, 0);
+     ack_bit = Read_SDA (dev);
+
+     return (ack_bit == 0);
 }
 
-uint8_t BBI2C_Recv_Char (BBI2C_t *dev)
+int BBI2C_Recv_Byte (BBI2C_t *dev, uint8_t *result)
 {
-    int i;
-    unsigned char result = 0;
+    int i, ack_bit;
+
+    *result = 0;
+    Drive_SCL (dev, 0);
 
     for (i = 0; i < 8; i++)
     {
-        Drive_SCL (dev, 1);
         Delay_us (dev->delay_us);
+        Release_SCL (dev);
+        Delay_us (dev->delay_us);
+
         if (Read_SDA (dev))
         {
-            result |=1;
+            *result |=1;
         }
         if (i < 7)
         {
-            result <<= 1;
+            *result <<= 1;
         }
+
         Drive_SCL (dev, 0);
+        Delay_us (dev->delay_us);
     }
 
-    return result;
+    Drive_SDA (dev, 1);
+    Delay_us (dev->delay_us);
+    Release_SCL (dev);
+    ack_bit = Read_SDA (dev);
+
+    Delay_us (dev->delay_us);
+    Drive_SCL (dev, 0);
+    ack_bit = Read_SDA (dev);
+
+    return (ack_bit == 0);
 }

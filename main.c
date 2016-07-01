@@ -31,62 +31,71 @@
 
 #define SHELL_WA_SIZE   THD_WORKING_AREA_SIZE(2048)
 
-static const I2CConfig i2cconfig = {
-    .timingr = 
-        STM32_TIMINGR_PRESC  (15U) |
-        STM32_TIMINGR_SCLDEL  (4U) |
-        STM32_TIMINGR_SDADEL  (2U) |
-        STM32_TIMINGR_SCLH   (15U) |
-        STM32_TIMINGR_SCLL   (21U),
-    .cr1 = 0,
-    .cr2 = 0
-};
+static void cmd_sample (BaseSequentialStream *chp, int argc, char *argv[])
+{
+    int result = 0, old_result = 1;
 
+    chprintf (chp, "Sampling SDA...\r\n");
+    for (;;)
+    { 
+        result = palReadPad (GPIOC, 10);
+        if (result != old_result)
+        {
+            chprintf (chp, "%d", result);
+            old_result = result;
+        }
+    }
+}
 
 static void cmd_ddc (BaseSequentialStream *chp, int argc, char *argv[])
 {
-
-  (void)argv;
-
-    msg_t status;
-    static const uint8_t cmd[] = {0xde, 0xad};
-    uint8_t data[] = {'d', 'e', 'a', 'd', 'b', 'e', 'e', 'f', 'd', 'e', 'a', 'd', 'c', 'o', 'd', 'e'};
-    static i2cflags_t errors = 0;
+    BBI2C_t i2cdev;
+    int i, ack, addr;
+    uint8_t header[8];
 
     if (argc != 1)
     {
-        chprintf(chp, "Invalid arguments (expected 1, got %d)\r\n", argc);
+        chprintf (chp, "Argument error.\r\n");
         return;
     }
-    uint8_t addr = atoi(argv[0]);
 
-    chprintf(chp, "Sending command to %x\r\n", addr);
-    i2cAcquireBus(&I2CD1);
-    i2cStart(&I2CD1, &i2cconfig);
-    status = i2cMasterTransmitTimeout(&I2CD1, addr, cmd, sizeof(cmd), data, sizeof(data), TIME_INFINITE);
-    i2cStop(&I2CD1);
-    i2cReleaseBus(&I2CD1);
+    addr = atoi (argv[0]);
 
-    switch (status)
+    // Send address (0x37 <<= 1 | 0x00) => 0x6e
+    // Send address (0x50 <<= 1 | 0x00) => 0xa0
+
+    chprintf (chp, "Sending to %x\r\n", addr);
+
+    BBI2C_Init (&i2cdev, GPIOC, 10, GPIOC, 11, 50000);
+    BBI2C_Start (&i2cdev);
+    ack = BBI2C_Send_Byte (&i2cdev, addr);
+    if (!ack)
     {
-        case MSG_RESET:
-            errors = i2cGetErrors(&I2CD1);
-            chprintf(chp, "Error sending I2C command (%x)\r\n", errors);
-            break;
-        case MSG_TIMEOUT:
-            chprintf(chp, "Timeout sending I2C command.\r\n");
-            break;
-        case MSG_OK:
-            chprintf(chp, "Done sending I2C command\r\n");
-            break;
-        default:
-            chprintf(chp, "??? Invalid i2cMasterTransmitTimeout result code.\r\n");
-            break;
+        //BBI2C_Send_Byte (&i2cdev, 0xea);  // Source address
+        BBI2C_Stop (&i2cdev);
+        chprintf (chp, "Error - got no ack in response\r\n");
+        return;
     }
+
+    // Read the first 8 bytes (should be fixed header pattern 00 FF FF FF FF FF FF 00
+    for (i = 0; i < 8; i++)
+    {
+        ack = BBI2C_Recv_Byte (&i2cdev, &header[i]);
+        if (!ack)
+        {
+            BBI2C_Stop (&i2cdev);
+            chprintf (chp, "Error - got no ack when reading \r\n");
+            return;
+        }
+    }
+
+    BBI2C_Stop (&i2cdev);
+    chprintf (chp, "Sent command to %x, ack: %d, result: %2x%2x%2x%2x%2x%2x%2x%2x: %d\r\n", addr, ack, header[0], header[1], header[2], header[3], header[4], header[5], header[6], header[7]);
 }
 
 static const ShellCommand commands[] = {
   {"ddc", cmd_ddc},
+  {"sample", cmd_sample},
   {NULL, NULL}
 };
 
@@ -99,49 +108,18 @@ static const ShellConfig shell_cfg1 = {
 /*
  * Blinker thread #1.
  */
-static THD_WORKING_AREA(waThread1, 128);
-static THD_FUNCTION(Thread1, arg) {
+static THD_WORKING_AREA(blinkerThreadWA, 128);
+static THD_FUNCTION(blinkerThread, arg)
+{
+    (void)arg;
 
-  (void)arg;
-
-  chRegSetThreadName("blinker");
-  while (true) {
-    palSetPad(GPIOE, GPIOE_LED3_RED);
-    chThdSleepMilliseconds(125);
-    palClearPad(GPIOE, GPIOE_LED3_RED);
-    chThdSleepMilliseconds(125);
-    palSetPad(GPIOE, GPIOE_LED7_GREEN);
-    chThdSleepMilliseconds(125);
-    palClearPad(GPIOE, GPIOE_LED7_GREEN);
-    chThdSleepMilliseconds(125);
-    palSetPad(GPIOE, GPIOE_LED10_RED);
-    chThdSleepMilliseconds(125);
-    palClearPad(GPIOE, GPIOE_LED10_RED);
-    chThdSleepMilliseconds(125);
-    palSetPad(GPIOE, GPIOE_LED6_GREEN);
-    chThdSleepMilliseconds(125);
-    palClearPad(GPIOE, GPIOE_LED6_GREEN);
-    chThdSleepMilliseconds(125);
-  }
-}
-
-/*
- * Software I2C thread
- */
-static THD_WORKING_AREA(swI2C, 128);
-static THD_FUNCTION(swI2CThread, arg) {
-
-    BBI2C_t i2cdev;
-    chRegSetThreadName("swI2C");
-
-    BBI2C_Init (&i2cdev, GPIOC, 10, GPIOC, 11, 100000);
+    chRegSetThreadName("blinker");
     while (true)
     {
-        BBI2C_Start (&i2cdev);
-        BBI2C_Send_Byte (&i2cdev, 0x50);
-        BBI2C_Send_Byte (&i2cdev, 0xea);
-        BBI2C_Stop (&i2cdev);
-        chThdSleepMilliseconds(100);
+        palSetPad(GPIOE, GPIOE_LED3_RED);
+        chThdSleepMilliseconds(30);
+        palClearPad(GPIOE, GPIOE_LED3_RED);
+        chThdSleepMilliseconds(1000);
     }
 }
 
@@ -184,14 +162,6 @@ int main(void) {
   shellInit();
 
   /*
-   * Initialize I2C
-   */
-  palSetPadMode(GPIOA, 14, PAL_MODE_ALTERNATE(4) | PAL_STM32_OTYPE_OPENDRAIN);   /* I2C1 SDA */
-  palSetPadMode(GPIOA, 15, PAL_MODE_ALTERNATE(4) | PAL_STM32_OTYPE_OPENDRAIN);   /* I2C1 SCL */
-  palSetPadMode(GPIOA,  9, PAL_MODE_ALTERNATE(4) | PAL_STM32_OTYPE_OPENDRAIN);   /* I2C2 SCL */
-  palSetPadMode(GPIOA, 10, PAL_MODE_ALTERNATE(4) | PAL_STM32_OTYPE_OPENDRAIN);   /* I2C2 SDA */
-
-  /*
    * MCO
    */
   palSetPadMode(GPIOA, 8, PAL_MODE_ALTERNATE(0));
@@ -200,8 +170,7 @@ int main(void) {
   /*
    * Creates the example threads.
    */
-  //chThdCreateStatic(waThread1, sizeof(waThread1), NORMALPRIO+1, Thread1, NULL);
-  chThdCreateStatic(swI2C, sizeof(swI2C), NORMALPRIO+10, swI2CThread, NULL);
+  chThdCreateStatic(blinkerThreadWA, sizeof(blinkerThreadWA), NORMALPRIO+10, blinkerThread, NULL);
 
   /*
    * Normal main() thread activity, in this demo it does nothing except

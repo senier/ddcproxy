@@ -20,6 +20,6 @@ void BBI2C_ACK (BBI2C_t *dev);
 void BBI2C_NACK (BBI2C_t *dev);
 
 int BBI2C_Send_Byte (BBI2C_t *dev, uint8_t data);
-uint8_t BBI2C_Recv_Byte (BBI2C_t *dev);
+int BBI2C_Recv_Byte (BBI2C_t *dev, uint8_t *data);
 
 #endif // BBI2C_H
