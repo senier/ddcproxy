@@ -1,4 +1,5 @@
 #include "bbi2c.h"
+#include "debug.h"
 
 static inline void Delay_us (uint32_t interval)
 {
@@ -55,25 +56,163 @@ void Release_SCL (BBI2C_t *dev)
     while (!Read_SCL (dev));
 }
 
-void BBI2C_Init
+int BBI2C_Init
     (BBI2C_t *dev,
      stm32_gpio_t *sda_gpio,
      unsigned int sda_pin,
      stm32_gpio_t *scl_gpio,
      unsigned int scl_pin,
-     unsigned long frequency)
+     unsigned long frequency,
+     BBI2C_Mode_t mode)
 {
     dev->sda_gpio = sda_gpio;
     dev->sda_pin  = sda_pin;
     dev->scl_gpio = scl_gpio;
     dev->scl_pin  = scl_pin;
-    dev->delay_us = 1000000 / frequency / 3;
+    dev->mode     = mode;
+    dev->last_scl = 1;
+    dev->last_sda = 1;
+    dev->state    = BS_Wait_Start;
+
+    switch (mode)
+    {
+        case BBI2C_MODE_INVALID:
+            return -1;
+        case BBI2C_MODE_SLAVE:
+            dev->delay_us = 1000000 / frequency / 4;
+            break;
+        case BBI2C_MODE_MASTER:
+            dev->delay_us = 1000000 / frequency / 3;
+            break;
+        default:
+            return -1;
+    }
 
     palSetPadMode(dev->scl_gpio, dev->scl_pin, PAL_MODE_OUTPUT_OPENDRAIN | PAL_STM32_OSPEED_HIGHEST);
     palSetPadMode(dev->sda_gpio, dev->sda_pin, PAL_MODE_OUTPUT_OPENDRAIN | PAL_STM32_OSPEED_HIGHEST);
 
     Drive_SDA (dev, 1);
-    Release_SCL (dev);
+    Drive_SCL (dev, 1);
+
+    return 0;
+}
+
+static BBI2C_Event_t BBI2C_Event (BBI2C_t *dev)
+{
+    BBI2C_Event_t result;
+    int sda, scl;
+
+    for (;;)
+    {
+        sda = palReadPad (dev->sda_gpio, dev->sda_pin);
+        scl = palReadPad (dev->scl_gpio, dev->scl_pin);
+        Delay_us (dev->delay_us);
+
+        if (sda != dev->last_sda || scl != dev->last_scl)
+        {
+            if (sda)
+                if (dev->last_sda)
+                    result.sda = BBI2C_LEVEL_HIGH;
+                else // !dev->last_sda
+                    result.sda = BBI2C_LEVEL_FALL;
+            else // !sda
+                if (dev->last_sda)
+                    result.sda = BBI2C_LEVEL_RAISE;
+                else // !dev->last_sda
+                    result.sda = BBI2C_LEVEL_LOW;
+
+            if (scl)
+                if (dev->last_scl)
+                    result.scl = BBI2C_LEVEL_HIGH;
+                else // !dev->last_scl
+                    result.scl = BBI2C_LEVEL_FALL;
+            else // !scl
+                if (dev->last_scl)
+                    result.scl = BBI2C_LEVEL_RAISE;
+                else // !dev->last_scl
+                    result.scl = BBI2C_LEVEL_LOW;
+
+            dev->last_sda = sda;
+            dev->last_scl = scl;
+            return result;
+        }
+    }
+}
+
+uint8_t BBI2C_Get_Byte (BBI2C_t *dev)
+{
+    uint8_t result = 0;
+    int count;
+
+    for (;;)
+    {
+        BBI2C_Event_t event = BBI2C_Event (dev);
+        
+        // Go to BS_Start whenever a start condition is encountered
+        if (START_CONDITION (event))
+        {
+            result = 0;
+            count = 8;
+            dev->state = BS_Start;
+            continue;
+        }
+
+        switch (dev->state)
+        {
+            case BS_Wait_Start:
+                Drive_SCL (dev, 1);
+                break;
+
+            case BS_Start:
+                if (STOP_CONDITION (event))     dev->state = BS_Wait_Start;
+                else if (SCL_FALLING (event))   dev->state = BS_Clock_Avail;
+                break;
+
+            case BS_Clock_Avail:
+                if (SCL_RAISING (event))
+                {
+                    result |= (Read_SDA (dev) << count);
+                    count--;
+                    dev->state = BS_Data;
+                }
+                break;
+
+            case BS_Data:
+                if (SCL_FALLING (event))
+                {
+                    if (count)
+                    {
+                        dev->state = BS_Clock_Avail;
+                    }
+                    else
+                    {
+                        dev->state = BS_Ack;
+                        Drive_SDA (dev, 0);
+                    }
+                }            
+                break;
+
+            case BS_Ack:
+                if (SCL_RAISING (event))
+                {
+                    dev->state = BS_Ack_Done;
+                } 
+                break;
+
+            case BS_Ack_Done:
+                if (SCL_FALLING(event))
+                {
+                    Drive_SDA (dev, 1);
+                    Drive_SCL (dev, 0);
+                    dev->state = BS_Wait_Start;
+                    return result;
+                }
+                break;
+                
+            default:
+                break;
+        }
+    }
 }
 
 void BBI2C_Start (BBI2C_t *dev)

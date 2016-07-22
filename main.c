@@ -18,6 +18,7 @@
 #include "hal.h"
 #include "usbcfg.h"
 #include "bbi2c.h"
+#include "debug.h"
 
 #include "shell.h"
 #include "chprintf.h"
@@ -31,19 +32,37 @@
 
 #define SHELL_WA_SIZE   THD_WORKING_AREA_SIZE(2048)
 
+DEBUG_DEF
+
 static void cmd_sample (BaseSequentialStream *chp, int argc, char *argv[])
 {
-    int result = 0, old_result = 1;
+    uint8_t data;
+    BBI2C_t i2cdev;
 
-    chprintf (chp, "Sampling SDA...\r\n");
+    DEBUG_INIT (chp);
+
+    BBI2C_Init (&i2cdev, GPIOC, 10, GPIOC, 11, 50000, BBI2C_MODE_SLAVE);
+
+    chprintf (chp, "Sampling Line: ");
     for (;;)
     { 
-        result = palReadPad (GPIOC, 10);
-        if (result != old_result)
-        {
-            chprintf (chp, "%d", result);
-            old_result = result;
-        }
+        data = BBI2C_Get_Byte (&i2cdev);
+        chprintf (chp, "%x ", data);
+        chThdSleepMilliseconds(500);
+    }
+}
+
+static void cmd_pintest (BaseSequentialStream *chp, int argc, char *argv[])
+{
+    BBI2C_t i2cdev;
+
+    BBI2C_Init (&i2cdev, GPIOC, 10, GPIOC, 11, 50000, BBI2C_MODE_SLAVE);
+    for (;;)
+    {
+        chThdSleepMilliseconds(100);
+        Drive_SDA (&i2cdev, 0);
+        chThdSleepMilliseconds(100);
+        Drive_SDA (&i2cdev, 1);
     }
 }
 
@@ -60,18 +79,14 @@ static void cmd_ddc (BaseSequentialStream *chp, int argc, char *argv[])
     }
 
     addr = atoi (argv[0]);
-
-    // Send address (0x37 <<= 1 | 0x00) => 0x6e
-    // Send address (0x50 <<= 1 | 0x00) => 0xa0
-
     chprintf (chp, "Sending to %x\r\n", addr);
 
-    BBI2C_Init (&i2cdev, GPIOC, 10, GPIOC, 11, 50000);
+    BBI2C_Init (&i2cdev, GPIOC, 10, GPIOC, 11, 50000, BBI2C_MODE_MASTER);
+
     BBI2C_Start (&i2cdev);
     ack = BBI2C_Send_Byte (&i2cdev, addr);
     if (!ack)
     {
-        //BBI2C_Send_Byte (&i2cdev, 0xea);  // Source address
         BBI2C_Stop (&i2cdev);
         chprintf (chp, "Error - got no ack in response\r\n");
         return;
@@ -96,6 +111,7 @@ static void cmd_ddc (BaseSequentialStream *chp, int argc, char *argv[])
 static const ShellCommand commands[] = {
   {"ddc", cmd_ddc},
   {"sample", cmd_sample},
+  {"pintest", cmd_pintest},
   {NULL, NULL}
 };
 
