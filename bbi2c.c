@@ -193,7 +193,7 @@ uint8_t BBI2C_Get_Byte (BBI2C_t *dev)
         // 	}
         //oldstate = dev->state;
         
-        // Go to BS_Start whenever a start condition is encountered
+	// Go to BS_Start whenever a start condition is encountered
         if (START_CONDITION (event))
         {
             result = 0;
@@ -201,6 +201,11 @@ uint8_t BBI2C_Get_Byte (BBI2C_t *dev)
             dev->state = BS_Start;
             continue;
         }
+	if (STOP_CONDITION (event))
+	{
+	    dev->state = BS_Wait_Start;
+	    continue;
+	}
 
         switch (dev->state)
         {
