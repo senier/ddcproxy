@@ -28,10 +28,10 @@ typedef enum
 
 typedef enum
 {
-    BBI2C_LEVEL_LOW,
-    BBI2C_LEVEL_HIGH,
-    BBI2C_LEVEL_RAISE,
-    BBI2C_LEVEL_FALL
+    BBI2C_LEVEL_LOW = 1,
+    BBI2C_LEVEL_HIGH = 2,
+    BBI2C_LEVEL_RAISE = 3,
+    BBI2C_LEVEL_FALL = 4
 } BBI2C_Level_t;
 
 typedef struct
@@ -40,7 +40,7 @@ typedef struct
     BBI2C_Level_t scl;
 } BBI2C_Event_t;
 
-#define SDA_RAISING(ev) ev.sda == BBI2C_LEVEL_RAISE
+#define SDA_RAISING(ev) ev.sda == BBI2C_LEVEL_RAISE 
 #define SDA_FALLING(ev) ev.sda == BBI2C_LEVEL_FALL
 #define SDA_HIGH(ev)    ev.sda == BBI2C_LEVEL_HIGH
 #define SDA_LOW(ev)     ev.sda == BBI2C_LEVEL_LOW
@@ -55,12 +55,12 @@ typedef struct
 
 typedef enum
 {
-    BS_Wait_Start  = 0,
-    BS_Start       = 1,
-    BS_Clock_Avail = 2,
-    BS_Data        = 3,
-    BS_Ack         = 4,
-    BS_Ack_Done    = 5
+    BS_Wait_Start  = 1,
+    BS_Start       = 2,
+    BS_Clock_Avail = 3,
+    BS_Data        = 4,
+    BS_Ack         = 5,
+    BS_Ack_Done    = 6
 } BBI2C_State_t;
 
 typedef struct
