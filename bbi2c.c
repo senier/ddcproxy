@@ -130,10 +130,10 @@ static BBI2C_Event_t BBI2C_Event (BBI2C_t *dev)
                 if (dev->last_sda)
                     result.sda = BBI2C_LEVEL_HIGH;
                 else // !dev->last_sda
-                    result.sda = BBI2C_LEVEL_FALL;
+                    result.sda = BBI2C_LEVEL_RAISE;
             else // !sda
                 if (dev->last_sda)
-                    result.sda = BBI2C_LEVEL_RAISE;
+                    result.sda = BBI2C_LEVEL_FALL;
                 else // !dev->last_sda
                     result.sda = BBI2C_LEVEL_LOW;
 
@@ -141,10 +141,10 @@ static BBI2C_Event_t BBI2C_Event (BBI2C_t *dev)
                 if (dev->last_scl)
                     result.scl = BBI2C_LEVEL_HIGH;
                 else // !dev->last_scl
-                    result.scl = BBI2C_LEVEL_FALL;
+                    result.scl = BBI2C_LEVEL_RAISE;
             else // !scl
                 if (dev->last_scl)
-                    result.scl = BBI2C_LEVEL_RAISE;
+                    result.scl = BBI2C_LEVEL_FALL;
                 else // !dev->last_scl
                     result.scl = BBI2C_LEVEL_LOW;
 
