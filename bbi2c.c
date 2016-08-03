@@ -16,6 +16,7 @@
 
 #include "bbi2c.h"
 #include "debug.h"
+#include "usbcfg.h"
 
 static inline void Delay_us (uint32_t interval)
 {
