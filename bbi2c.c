@@ -210,7 +210,7 @@ uint8_t BBI2C_Get_Byte (BBI2C_t *dev)
         switch (dev->state)
         {
             case BS_Wait_Start:
-                Drive_SCL (dev, 1);
+                //Drive_SCL (dev, 1);
                 break;
 
             case BS_Start:
@@ -229,7 +229,7 @@ uint8_t BBI2C_Get_Byte (BBI2C_t *dev)
 
             case BS_Data:
                 if (SCL_FALLING (event))
-                {
+	                {
                     if (count)
                     {
                         dev->state = BS_Clock_Avail;
@@ -239,14 +239,14 @@ uint8_t BBI2C_Get_Byte (BBI2C_t *dev)
                         dev->state = BS_Ack;
                         Drive_SDA (dev, 0);
                     }
-                }            
+                }
                 break;
 
             case BS_Ack:
                 if (SCL_RAISING (event))
                 {
-                    dev->state = BS_Ack_Done;
-                } 
+		    dev->state = BS_Ack_Done;
+                }
                 break;
 
             case BS_Ack_Done:
@@ -258,7 +258,7 @@ uint8_t BBI2C_Get_Byte (BBI2C_t *dev)
                     return result;
                 }
                 break;
-                
+
             default:
                 break;
         }
