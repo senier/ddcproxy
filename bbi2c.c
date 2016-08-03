@@ -168,7 +168,7 @@ uint8_t BBI2C_Get_Byte (BBI2C_t *dev)
     BBI2C_State_t oldstate = 0;
 
     uint8_t result = 0;
-    int count;
+    int count = 8;
     debug_t transitions[15];
     uint32_t tcounter = 0;
 
