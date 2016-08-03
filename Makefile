@@ -86,7 +86,7 @@ endif
 PROJECT = ch
 
 # Imported source files and paths
-CHIBIOS = ../ChibiOS_16.1.4
+CHIBIOS = ../ChibiOS_16.1.5
 # Startup files.
 include $(CHIBIOS)/os/common/ports/ARMCMx/compilers/GCC/mk/startup_stm32f3xx.mk
 # HAL-OSAL files (optional).
