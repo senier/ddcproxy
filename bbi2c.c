@@ -219,7 +219,7 @@ uint8_t BBI2C_Get_Byte (BBI2C_t *dev)
         switch (dev->state)
         {
             case BS_Wait_Start:
-                //Drive_SCL (dev, 1);
+                Drive_SCL (dev, 1);
                 break;
 
             case BS_Start:
