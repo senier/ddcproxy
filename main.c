@@ -80,7 +80,7 @@ static void cmd_pintest (BaseSequentialStream *chp, int argc, char *argv[])
     }
 }
 
-static void cmd_basicread (BaseSequentialStream *chp, int argc, char *argv[])
+static void cmd_edid (BaseSequentialStream *chp, int argc, char *argv[])
 {
 	BBI2C_t i2cdev;
 	int i, k, ack;
@@ -164,7 +164,7 @@ static void cmd_ddc (BaseSequentialStream *chp, int argc, char *argv[])
 static const ShellCommand commands[] = {
   {"ddc", cmd_ddc},
   {"sample", cmd_sample},
-  {"basicread", cmd_basicread},
+  {"edid", cmd_edid},
   {"pintest", cmd_pintest},
   {NULL, NULL}
 };
