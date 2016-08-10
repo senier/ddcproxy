@@ -106,7 +106,7 @@ static void cmd_basicread (BaseSequentialStream *chp, int argc, char *argv[])
 	}
 	else
 	{
-		chprintf(chp, "NACK on request - try again!");
+		chprintf(chp, "NACK on request - try again!\r\n");
 		BBI2C_NACK(&i2cdev);
 		BBI2C_Stop(&i2cdev);
 		return;
