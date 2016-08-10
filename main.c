@@ -34,6 +34,8 @@
 
 DEBUG_DEF
 
+uint8_t savedEDID[128];
+
 static void cmd_sample (BaseSequentialStream *chp, int argc, char *argv[])
 {
     uint8_t data;
@@ -83,8 +85,7 @@ static void cmd_pintest (BaseSequentialStream *chp, int argc, char *argv[])
 static void cmd_edid (BaseSequentialStream *chp, int argc, char *argv[])
 {
 	BBI2C_t i2cdev;
-	int i, k, ack;
-	uint8_t stream[8];
+	int k, ack;
 	int addr = 0xA1;
 
 	BBI2C_Init (&i2cdev, GPIOC, 10, GPIOC, 11, 50000, BBI2C_MODE_MASTER);
@@ -94,18 +95,16 @@ static void cmd_edid (BaseSequentialStream *chp, int argc, char *argv[])
 	if(ack)
 	{
 		chprintf(chp, "Read EDID: \r\n");
-		for(k = 0; k < 16; k++)
-		{	
-			for(i = 0; i < 8; i++)
-			{
-				BBI2C_Recv_Byte (&i2cdev, &stream[i]);
-				if (k==15 && i==7)
-				{
-					BBI2C_NACK (&i2cdev);	
-				}
-				else BBI2C_Ack (&i2cdev);
-			}
-			chprintf (chp, " %x %x %x %x %x %x %x %x \r\n", stream[0], stream[1], stream[2], stream[3], stream[4], stream[5], stream[6], stream[7]);
+		for(k = 0; k < 128; k++)
+		{
+			BBI2C_Recv_Byte (&i2cdev, &savedEDID[k]);
+			if (k==127) BBI2C_NACK (&i2cdev);
+			else BBI2C_Ack (&i2cdev);
+		}
+		for (k = 0; k < 128; k++)
+		{
+			 if((k%8)==0) chprintf(chp, "\r\n");
+			 chprintf (chp, "%x ", savedEDID[k]);
 		}
 	}
 	else
