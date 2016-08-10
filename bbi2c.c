@@ -339,7 +339,7 @@ int BBI2C_Send_Byte (BBI2C_t *dev, uint8_t data)
 
      Delay_us (dev->delay_us);
      Drive_SCL (dev, 0);
-     ack_bit = Read_SDA (dev);
+     Check_Stretch_SCL (dev);
 
      return (ack_bit == 0);
 }
