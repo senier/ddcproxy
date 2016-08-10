@@ -363,21 +363,19 @@ void BBI2C_Recv_Byte (BBI2C_t *dev, uint8_t *result)
         }
         if (i < 7)
         {
-            *result <<= 1;
+            *result = *result << 1;
         }
 
         Drive_SCL (dev, 0);
         Delay_us (dev->delay_us);
-    }
-
-    Drive_SDA (dev, 1);
+    } 
+    
+    Drive_SDA (dev, 0);
     Delay_us (dev->delay_us);
-    Release_SCL (dev);
-    ack_bit = Read_SDA (dev);
-
+    Drive_SCL (dev, 1);
     Delay_us (dev->delay_us);
     Drive_SCL (dev, 0);
-    ack_bit = Read_SDA (dev);
+    Drive_SDA (dev, 1);
+    Delay_us (dev->delay_us);
 
-    return (ack_bit == 0);
 }
