@@ -293,20 +293,26 @@ void BBI2C_Stop (BBI2C_t *dev)
 }
 
 void BBI2C_Ack (BBI2C_t *dev)
-{
-    Drive_SDA (dev, 0);
+{   
+ 	Drive_SDA (dev, 0);
+    Delay_us (dev->delay_us);
     Drive_SCL (dev, 1);
+    Delay_us (dev->delay_us);
     Drive_SCL (dev, 0);
     Drive_SDA (dev, 1);
+    Delay_us (dev->delay_us);
 }
 
 void BBI2C_NACK (BBI2C_t *dev)
 {
-    Drive_SDA (dev, 1);
+	Drive_SDA (dev, 1);
+    Delay_us (dev->delay_us);
     Drive_SCL (dev, 1);
+    Delay_us (dev->delay_us);
     Drive_SCL (dev, 0);
-    Drive_SDA (dev, 0);
+    Delay_us (dev->delay_us);
 }
+
 
 int BBI2C_Send_Byte (BBI2C_t *dev, uint8_t data)
 {
@@ -369,13 +375,5 @@ void BBI2C_Recv_Byte (BBI2C_t *dev, uint8_t *result)
         Drive_SCL (dev, 0);
         Delay_us (dev->delay_us);
     } 
-    
-    Drive_SDA (dev, 0);
-    Delay_us (dev->delay_us);
-    Drive_SCL (dev, 1);
-    Delay_us (dev->delay_us);
-    Drive_SCL (dev, 0);
-    Drive_SDA (dev, 1);
-    Delay_us (dev->delay_us);
-
-}
+   	return;
+ }
