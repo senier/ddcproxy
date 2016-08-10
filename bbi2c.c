@@ -344,11 +344,11 @@ int BBI2C_Send_Byte (BBI2C_t *dev, uint8_t data)
      return (ack_bit == 0);
 }
 
-int BBI2C_Recv_Byte (BBI2C_t *dev, uint8_t *result)
+void BBI2C_Recv_Byte (BBI2C_t *dev, uint8_t *result)
 {
-    int i, ack_bit;
-
+    int i;
     *result = 0;
+
     Drive_SCL (dev, 0);
 
     for (i = 0; i < 8; i++)
