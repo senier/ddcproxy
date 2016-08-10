@@ -73,6 +73,15 @@ void Release_SCL (BBI2C_t *dev)
     while (!Read_SCL (dev));
 }
 
+void Check_Stretch_SCL (BBI2C_t *dev)
+{
+    int clock = 0;
+    while (clock == 0){
+    	clock = Read_SCL (dev);
+    }
+   // Drive_SCL (dev, 1);
+}
+
 int BBI2C_Init
     (BBI2C_t *dev,
      stm32_gpio_t *sda_gpio,
