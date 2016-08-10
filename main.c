@@ -141,7 +141,7 @@ static void cmd_ddc (BaseSequentialStream *chp, int argc, char *argv[])
     // Read the first 8 bytes (should be fixed header pattern 00 FF FF FF FF FF FF 00
     for (i = 0; i < 8; i++)
     {
-        ack = BBI2C_Recv_Byte (&i2cdev, &header[i]);
+        BBI2C_Recv_Byte (&i2cdev, &header[i]);
         if (!ack)
         {
             BBI2C_Stop (&i2cdev);
@@ -150,8 +150,8 @@ static void cmd_ddc (BaseSequentialStream *chp, int argc, char *argv[])
         }
     }
 
-    BBI2C_Stop (&i2cdev);
-    chprintf (chp, "Sent command to %x, ack: %d, result: %2x%2x%2x%2x%2x%2x%2x%2x: %d\r\n", addr, ack, header[0], header[1], header[2], header[3], header[4], header[5], header[6], header[7]);
+   BBI2C_Stop (&i2cdev);
+   chprintf (chp, "Sent command to %x, ack: %d, result: %2x%2x%2x%2x%2x%2x%2x%2x: %d\r\n", addr, ack, header[0], header[1], header[2], header[3], header[4], header[5], header[6], header[7]);
 }
 
 static const ShellCommand commands[] = {
