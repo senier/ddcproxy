@@ -38,26 +38,26 @@ static void cmd_sample (BaseSequentialStream *chp, int argc, char *argv[])
 {
     uint8_t data;
     BBI2C_t i2cdev;
-    uint8_t samples[10];
+    uint8_t samples[30];
     uint8_t samplecount = 0;
 
     DEBUG_INIT (chp);
 
-    BBI2C_Init (&i2cdev, GPIOC, 10, GPIOC, 11, 10000, BBI2C_MODE_SLAVE);
+    BBI2C_Init (&i2cdev, GPIOC, 10, GPIOC, 11, 50000, BBI2C_MODE_SLAVE);
 
     //Store all captured Bytes in an array. Print after 10 captured bytes.
     chprintf (chp, "Sampling Line: ");
     for (;;)
     { 
         data = BBI2C_Get_Byte (&i2cdev);
-	if(samplecount < 10)
+	if(samplecount < 30)
 	{
-        	samples[samplecount] = data;
+        samples[samplecount] = data;
 		samplecount++;
 	}
 	else
 	{
-		for(samplecount = 0; samplecount < 10; samplecount++)
+		for(samplecount = 0; samplecount < 30; samplecount++)
 		{
 			chprintf(chp, "%x ", samples[samplecount]);
 		}
