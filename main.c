@@ -99,7 +99,11 @@ static void cmd_basicread (BaseSequentialStream *chp, int argc, char *argv[])
 			for(i = 0; i < 8; i++)
 			{
 				BBI2C_Recv_Byte (&i2cdev, &stream[i]);
-				BBI2C_Ack(&i2cdev);
+				if (k==15 && i==7)
+				{
+					BBI2C_NACK (&i2cdev);	
+				}
+				else BBI2C_Ack (&i2cdev);
 			}
 			chprintf (chp, " %x %x %x %x %x %x %x %x \r\n", stream[0], stream[1], stream[2], stream[3], stream[4], stream[5], stream[6], stream[7]);
 		}
@@ -111,7 +115,6 @@ static void cmd_basicread (BaseSequentialStream *chp, int argc, char *argv[])
 		BBI2C_Stop(&i2cdev);
 		return;
 	}
-       BBI2C_NACK(&i2cdev);
        BBI2C_Stop(&i2cdev);
 }
 
