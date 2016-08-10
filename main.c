@@ -80,6 +80,38 @@ static void cmd_pintest (BaseSequentialStream *chp, int argc, char *argv[])
     }
 }
 
+static void cmd_basicread (BaseSequentialStream *chp, int argc, char *argv[])
+{
+	BBI2C_t i2cdev;
+	int i, k, ack;
+	uint8_t stream[8];
+	int addr = 0xA1;
+
+	BBI2C_Init (&i2cdev, GPIOC, 10, GPIOC, 11, 50000, BBI2C_MODE_MASTER);
+	BBI2C_Start (&i2cdev);
+
+        ack = BBI2C_Send_Byte (&i2cdev, addr);
+	if(ack)
+	{
+		chprintf(chp, "Read EDID: \r\n");
+		for(k = 0; k < 16; k++)
+		{	
+			for(i = 0; i < 8; i++)
+			{
+				BBI2C_Recv_Byte (&i2cdev, &stream[i]);
+			}
+			chprintf (chp, " %x %x %x %x %x %x %x %x \r\n", stream[0], stream[1], stream[2], stream[3], stream[4], stream[5], stream[6], stream[7]);
+		}
+	}
+	else
+	{
+		chprintf(chp, "NACK on request - try again!");
+		BBI2C_Stop(&i2cdev);
+		return;
+	}
+       BBI2C_Stop(&i2cdev);
+}
+
 static void cmd_ddc (BaseSequentialStream *chp, int argc, char *argv[])
 {
     BBI2C_t i2cdev;
@@ -125,6 +157,7 @@ static void cmd_ddc (BaseSequentialStream *chp, int argc, char *argv[])
 static const ShellCommand commands[] = {
   {"ddc", cmd_ddc},
   {"sample", cmd_sample},
+  {"basicread", cmd_basicread},
   {"pintest", cmd_pintest},
   {NULL, NULL}
 };
