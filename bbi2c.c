@@ -376,4 +376,109 @@ void BBI2C_Recv_Byte (BBI2C_t *dev, uint8_t *result)
         Delay_us (dev->delay_us);
     } 
    	return;
- }
+}
+
+int BBI2C_Send_Byte_To_Master (BBI2C_t *dev, uint8_t data)
+{
+    unsigned char i, ack_bit;
+/*
+    for(;;)
+    {
+	if(Read_SCL (dev))
+	{
+    		for (i = 0; i < 8; i++)
+    		{	
+    	   	 if ((data & 0x80) == 0)
+    	   	 {
+       			    Drive_SDA (dev, 0);
+       		    } 
+       		    else
+       		    {
+       		        Drive_SDA (dev, 1);
+       		    }
+        	    data <<= 1;
+		    for(;;)
+		    {
+			if(!Read_SCL (dev)) break;
+		    }
+		    if(i==7) goto finish;
+		}
+	}	
+    }
+
+finish: 
+    for(;;)
+    {
+	if(Read_SCL (dev)) break;
+    }
+    ack_bit = Read_SDA (dev);
+    return (ack_bit == 0);
+}  */ 
+	   
+    uint8_t oData = data;
+    uint8_t result = 0;
+    int count = 8;
+
+    dev->state = BS_Clock_Avail;	
+    for (;;)
+    {
+        BBI2C_Event_t event = BBI2C_Event (dev);
+
+	// Go to BS_Start whenever a start condition is encountered
+   if (START_CONDITION (event))
+   {
+	return 3;
+   }
+   if (STOP_CONDITION (event))
+   {
+	return 2;
+   }
+
+        switch (dev->state)
+        {
+            case BS_Clock_Avail:
+                if (SCL_LOW (event)||SCL_FALLING(event))
+                {
+		    if (count)
+                    {
+			    if ((data & 0x80) == 0)
+    	   	            { 
+       				 	Drive_SDA (dev, 0);
+       		    	    } 
+       		    	    else
+       		            {
+       		        		Drive_SDA (dev, 1);
+       		    	    }	
+        	            count--;
+                            dev->state = BS_Data;
+       		            data <<= 1;
+		     		}
+		     		else
+		     		{
+					dev->state = BS_Ack;
+		     		}		
+                }
+                break;
+
+            case BS_Data:
+                if (SCL_FALLING (event))
+	       	{
+               		dev->state = BS_Clock_Avail; 
+                }
+                break;
+
+            case BS_Ack:
+                if (SCL_RAISING (event))
+                {
+	    		ack_bit = Read_SDA (dev);
+	    		return ack_bit;
+                }
+                break;
+
+            default:
+                break;
+        }
+    }
+}
+
+
