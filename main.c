@@ -68,6 +68,100 @@ static void cmd_sample (BaseSequentialStream *chp, int argc, char *argv[])
     }
 }
 
+static void cmd_pipe (BaseSequentialStream *chp, int argc, char *argv[])
+{
+    uint8_t data;
+    BBI2C_t i2cdev;
+    uint8_t count;
+    uint8_t ack;
+    uint8_t retry = 10;
+
+    DEBUG_INIT (chp);
+
+	//For debugging 
+
+    savedEDID[0] = 0x00;
+    savedEDID[1] = 0xFF;
+    savedEDID[2] = 0xFF;
+    savedEDID[3] = 0xFF;
+    savedEDID[4] = 0xFF;
+    savedEDID[5] = 0xFF;
+    savedEDID[6] = 0xFF;
+    savedEDID[7] = 0x00;
+
+    chprintf(chp, "data: ");
+    for(int i = 0; i < 8; i++)
+    {
+	chprintf(chp, "%x ", savedEDID[i]);
+    }
+    chprintf(chp, "\r\n");
+    BBI2C_Init (&i2cdev, GPIOC, 10, GPIOC, 11, 10000, BBI2C_MODE_SLAVE);
+
+begin:
+    //Store all captured Bytes in an array. Print after 10 captured bytes.
+    chprintf (chp, "Sampling Line: ");
+    for (;;)
+    { 
+       data = BBI2C_Get_Byte (&i2cdev);
+      // chprintf(chp, "gelesenes byte: %x \r\n", data);
+ 	   	if(data == 0xA1)
+		{ //ACK, Sende erstes Byte, warte auf Ack
+			chprintf(chp, "found 0xA1 \r\n");
+	   		for(count = 0; count < 8; count ++)
+			{
+				chprintf(chp, "trying to send %d \r\n", savedEDID[count]);
+				ack = BBI2C_Send_Byte_To_Master ((&i2cdev), savedEDID[count]);
+				if(count <8)
+				{
+					if(ack==1)
+					{
+						chprintf(chp, "no ack for %x \r\n", savedEDID[count]);
+						retry--;
+						if(retry==0)
+						{
+							return;
+						}
+						goto begin;
+					}
+					else if (ack==2)
+					{
+						chprintf(chp, "STOP condition encountered \r\n");
+						retry--;
+						if(retry==0)
+						{
+							return;
+						}
+						goto begin;						
+					}
+					else if (ack==3)
+					{
+						chprintf(chp, "Start condition encountered \r\n"); 
+						retry--;
+						if(retry==0)
+						{
+							return;
+						}
+						goto begin;
+					}
+				}
+				else 
+				{
+					if(ack)
+					{
+						chprintf(chp, "stop of transmission");
+						BBI2C_Stop (&i2cdev);
+						return;
+					}
+				}		
+			}
+	   	}
+	/*	else
+		{
+			chprintf(chp, "%x \r\n", data);
+		}**/
+    }
+}
+
 static void cmd_pintest (BaseSequentialStream *chp, int argc, char *argv[])
 {
     BBI2C_t i2cdev;
@@ -162,6 +256,7 @@ static void cmd_ddc (BaseSequentialStream *chp, int argc, char *argv[])
 
 static const ShellCommand commands[] = {
   {"ddc", cmd_ddc},
+  {"pipe", cmd_pipe},
   {"sample", cmd_sample},
   {"edid", cmd_edid},
   {"pintest", cmd_pintest},
