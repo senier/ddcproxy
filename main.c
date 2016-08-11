@@ -182,7 +182,7 @@ static void cmd_edid (BaseSequentialStream *chp, int argc, char *argv[])
 	int k, ack;
 	int addr = 0xA1;
 
-	BBI2C_Init (&i2cdev, GPIOC, 10, GPIOC, 11, 50000, BBI2C_MODE_MASTER);
+	BBI2C_Init (&i2cdev, GPIOC, 4, GPIOC, 5, 50000, BBI2C_MODE_MASTER);
 	BBI2C_Start (&i2cdev);
 
         ack = BBI2C_Send_Byte (&i2cdev, addr);
