@@ -50,7 +50,7 @@ static void cmd_sample (BaseSequentialStream *chp, int argc, char *argv[])
     //Store all captured Bytes in an array. Print after 10 captured bytes.
     chprintf (chp, "Sampling Line: ");
     for (;;)
-    { 
+    {
         data = BBI2C_Get_Byte (&i2cdev);
 	if(samplecount < 30)
 	{
@@ -78,7 +78,7 @@ static void cmd_pipe (BaseSequentialStream *chp, int argc, char *argv[])
 
     DEBUG_INIT (chp);
 
-	//For debugging 
+	//For debugging
 
     savedEDID[0] = 0x00;
     savedEDID[1] = 0xFF;
@@ -92,68 +92,68 @@ static void cmd_pipe (BaseSequentialStream *chp, int argc, char *argv[])
     chprintf(chp, "data: ");
     for(int i = 0; i < 8; i++)
     {
-	chprintf(chp, "%x ", savedEDID[i]);
+	     chprintf(chp, "%x ", savedEDID[i]);
     }
     chprintf(chp, "\r\n");
     BBI2C_Init (&i2cdev, GPIOC, 10, GPIOC, 11, 10000, BBI2C_MODE_SLAVE);
 
-begin:
     //Store all captured Bytes in an array. Print after 10 captured bytes.
     chprintf (chp, "Sampling Line: ");
     for (;;)
-    { 
-       data = BBI2C_Get_Byte (&i2cdev);
+    {
+begin:
+      data = BBI2C_Get_Byte (&i2cdev);
       // chprintf(chp, "gelesenes byte: %x \r\n", data);
  	   	if(data == 0xA1)
-		{ //ACK, Sende erstes Byte, warte auf Ack
-			chprintf(chp, "found 0xA1 \r\n");
-	   		for(count = 0; count < 8; count ++)
-			{
-				chprintf(chp, "trying to send %d \r\n", savedEDID[count]);
-				ack = BBI2C_Send_Byte_To_Master ((&i2cdev), savedEDID[count]);
-				if(count <8)
-				{
-					if(ack==1)
-					{
-						chprintf(chp, "no ack for %x \r\n", savedEDID[count]);
-						retry--;
-						if(retry==0)
-						{
-							return;
-						}
-						goto begin;
-					}
-					else if (ack==2)
-					{
-						chprintf(chp, "STOP condition encountered \r\n");
-						retry--;
-						if(retry==0)
-						{
-							return;
-						}
-						goto begin;						
-					}
-					else if (ack==3)
-					{
-						chprintf(chp, "Start condition encountered \r\n"); 
-						retry--;
-						if(retry==0)
-						{
-							return;
-						}
-						goto begin;
-					}
-				}
-				else 
-				{
-					if(ack)
-					{
-						chprintf(chp, "stop of transmission");
-						BBI2C_Stop (&i2cdev);
-						return;
-					}
-				}		
-			}
+		  { //ACK, Sende erstes Byte, warte auf Ack
+			     chprintf(chp, "found 0xA1 \r\n");
+	   		   for(count = 0; count < 8; count ++)
+			     {
+      				chprintf(chp, "trying to send %d \r\n", savedEDID[count]);
+      				ack = BBI2C_Send_Byte_To_Master ((&i2cdev), savedEDID[count]);
+      				if(count <8)
+      				{
+      					if(ack==1)
+      					{
+      						chprintf(chp, "no ack for %x \r\n", savedEDID[count]);
+      						retry--;
+      						if(retry==0)
+      						{
+      							return;
+      						}
+      						goto begin;
+      					}
+      					else if (ack==2)
+      					{
+      						chprintf(chp, "STOP condition encountered \r\n");
+      						retry--;
+      						if(retry==0)
+      						{
+      							return;
+      						}
+      						goto begin;
+      					}
+      					else if (ack==3)
+      					{
+      						chprintf(chp, "Start condition encountered \r\n");
+      						retry--;
+      						if(retry==0)
+      						{
+      							return;
+      						}
+      						goto begin;
+      					}
+      				}
+      				else
+      				{
+      					if(ack)
+      					{
+      						chprintf(chp, "stop of transmission");
+      						BBI2C_Stop (&i2cdev);
+      						return;
+      					}
+      				}
+			    }
 	   	}
 	/*	else
 		{
@@ -329,7 +329,7 @@ int main(void) {
    * MCO
    */
   palSetPadMode(GPIOA, 8, PAL_MODE_ALTERNATE(0));
-  
+
 
   /*
    * Creates the example threads.
@@ -338,7 +338,7 @@ int main(void) {
 
   /*
    * Normal main() thread activity, in this demo it does nothing except
-   * sleeping in a loop 
+   * sleeping in a loop
    */
   while (true) {
 

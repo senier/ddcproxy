@@ -167,7 +167,7 @@ static BBI2C_Event_t BBI2C_Event (BBI2C_t *dev)
 
 uint8_t BBI2C_Get_Byte (BBI2C_t *dev)
 {
-    typedef struct 
+    typedef struct
     {
       BBI2C_State_t state;
       BBI2C_Level_t sda;
@@ -195,13 +195,13 @@ uint8_t BBI2C_Get_Byte (BBI2C_t *dev)
         //  }
 	//} else {
 	//     	for(tcounter = 0; tcounter < 15; tcounter++)
-	//	{		
+	//	{
 	//		chprintf(&SDU1,"%d/%d/%d ", transitions[tcounter].state, transitions[tcounter].sda, transitions[tcounter].scl);
 	//	}
         //   	tcounter = 0;
         // 	}
         //oldstate = dev->state;
-        
+
 	// Go to BS_Start whenever a start condition is encountered
         if (START_CONDITION (event))
         {
@@ -293,7 +293,7 @@ void BBI2C_Stop (BBI2C_t *dev)
 }
 
 void BBI2C_Ack (BBI2C_t *dev)
-{   
+{
  	Drive_SDA (dev, 0);
     Delay_us (dev->delay_us);
     Drive_SCL (dev, 1);
@@ -374,7 +374,7 @@ void BBI2C_Recv_Byte (BBI2C_t *dev, uint8_t *result)
 
         Drive_SCL (dev, 0);
         Delay_us (dev->delay_us);
-    } 
+    }
    	return;
 }
 
@@ -387,11 +387,11 @@ int BBI2C_Send_Byte_To_Master (BBI2C_t *dev, uint8_t data)
 	if(Read_SCL (dev))
 	{
     		for (i = 0; i < 8; i++)
-    		{	
+    		{
     	   	 if ((data & 0x80) == 0)
     	   	 {
        			    Drive_SDA (dev, 0);
-       		    } 
+       		    }
        		    else
        		    {
        		        Drive_SDA (dev, 1);
@@ -403,82 +403,80 @@ int BBI2C_Send_Byte_To_Master (BBI2C_t *dev, uint8_t data)
 		    }
 		    if(i==7) goto finish;
 		}
-	}	
+	}
     }
 
-finish: 
+finish:
     for(;;)
     {
 	if(Read_SCL (dev)) break;
     }
     ack_bit = Read_SDA (dev);
     return (ack_bit == 0);
-}  */ 
-	   
+}  */
+
     uint8_t oData = data;
     uint8_t result = 0;
     int count = 8;
 
-    dev->state = BS_Clock_Avail;	
+    dev->state = BS_Clock_Avail;
     for (;;)
     {
         BBI2C_Event_t event = BBI2C_Event (dev);
 
-	// Go to BS_Start whenever a start condition is encountered
-   if (START_CONDITION (event))
-   {
-	return 3;
-   }
-   if (STOP_CONDITION (event))
-   {
-	return 2;
-   }
+    	// Go to BS_Start whenever a start condition is encountered
+       if (START_CONDITION (event))
+       {
+    	    return 3;
+       }
+       if (STOP_CONDITION (event))
+       {
+    	    return 2;
+       }
 
-        switch (dev->state)
-        {
-            case BS_Clock_Avail:
-                if (SCL_LOW (event)||SCL_FALLING(event))
-                {
-		    if (count)
-                    {
-			    if ((data & 0x80) == 0)
-    	   	            { 
-       				 	Drive_SDA (dev, 0);
-       		    	    } 
-       		    	    else
-       		            {
-       		        		Drive_SDA (dev, 1);
-       		    	    }	
-        	            count--;
-                            dev->state = BS_Data;
-       		            data <<= 1;
-		     		}
-		     		else
-		     		{
-					dev->state = BS_Ack;
-		     		}		
-                }
-                break;
+      switch (dev->state)
+      {
+          case BS_Clock_Avail:
+              if (SCL_LOW (event)||SCL_FALLING(event))
+              {
+    		          if (count)
+                  {
+    			             if ((data & 0x80) == 0)
+        	   	        {
+           				 	       Drive_SDA (dev, 0);
+           		    	  }
+           		    	  else
+           		        {
+           		        		Drive_SDA (dev, 1);
+           		    	  }
+            	        count--;
+                      dev->state = BS_Data;
+           		        data <<= 1;
+    		     		  }
+    		     		  else
+    		     		  {
+    					           dev->state = BS_Ack;
+    		     		  }
+              }
+              break;
 
-            case BS_Data:
-                if (SCL_FALLING (event))
-	       	{
-               		dev->state = BS_Clock_Avail; 
-                }
-                break;
+          case BS_Data:
+              if (SCL_FALLING (event))
+    	        {
+               		dev->state = BS_Clock_Avail;
+              }
+              break;
 
-            case BS_Ack:
-                if (SCL_RAISING (event))
-                {
-	    		ack_bit = Read_SDA (dev);
-	    		return ack_bit;
-                }
-                break;
+          case BS_Ack:
+              if (SCL_RAISING (event))
+              {
+	    		        ack_bit = Read_SDA (dev);
+	    		        return ack_bit;
+              }
+              break;
 
-            default:
-                break;
+          default:
+              break;
         }
-    }
+      }
 }
-
-
