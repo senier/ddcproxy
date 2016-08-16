@@ -40,7 +40,7 @@ typedef struct
     BBI2C_Level_t scl;
 } BBI2C_Event_t;
 
-#define SDA_RAISING(ev) ev.sda == BBI2C_LEVEL_RAISE 
+#define SDA_RAISING(ev) ev.sda == BBI2C_LEVEL_RAISE
 #define SDA_FALLING(ev) ev.sda == BBI2C_LEVEL_FALL
 #define SDA_HIGH(ev)    ev.sda == BBI2C_LEVEL_HIGH
 #define SDA_LOW(ev)     ev.sda == BBI2C_LEVEL_LOW
