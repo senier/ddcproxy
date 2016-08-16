@@ -122,6 +122,7 @@ begin:
       data = BBI2C_Get_Byte (&i2cdev);
       count = 0;
       // chprintf(chp, "gelesenes byte: %x \r\n", data);
+      if(data == 0x6E) chprintf(chp, "ddc/ci request");
  	   	if(data == 0xA1)
 		  { //ACK, Sende erstes Byte, warte auf Ack
 			     //chprintf(chp, "found 0xA1 \r\n");
@@ -133,73 +134,11 @@ begin:
       				if(count <127)
       				{
                 //NACK received
-      					if(ack==1)
+      					if(ack)
       					{
-                  if(stackcounter < (sizeof(stack)/sizeof(debug_t)))
-                  {
-                    stack[stackcounter].byte = savedEDID[count];
-                    stack[stackcounter].result = ack;
-                    stackcounter++;
-                  }
       						retry--;
       						if(retry==0)
       						{
-                    for(stackcounter = 0; stackcounter < 20; stackcounter++)
-                    {
-                      chprintf(chp, "byte: %x, result: %x \r\n", stack[stackcounter].byte, stack[stackcounter].result);
-                      if(stack[stackcounter].result!=0)
-                      {
-                        chprintf(chp, "=============\r\n");
-                      }
-                    }
-      							return;
-      						}
-      						goto begin;
-      					}
-                //STOP received
-      					else if (ack==2)
-      					{
-                  if(stackcounter < (sizeof(stack)/sizeof(debug_t)))
-                  {
-                    stack[stackcounter].byte = savedEDID[count];
-                    stack[stackcounter].result = ack;
-                    stackcounter++;
-                  }
-      						retry--;
-      						if(retry==0)
-      						{
-                    for(stackcounter = 0; stackcounter < 20; stackcounter++)
-                    {
-                      chprintf(chp, "byte: %x, result: %x \r\n", stack[stackcounter].byte, stack[stackcounter].result);
-                      if(stack[stackcounter].result!=0)
-                      {
-                        chprintf(chp, "=============\r\n");
-                      }
-                    }
-      							return;
-      						}
-      						goto begin;
-      					}
-                //Start received
-      					else if (ack==3)
-      					{
-                  if(stackcounter < (sizeof(stack)/sizeof(debug_t)))
-                  {
-                    stack[stackcounter].byte = savedEDID[count];
-                    stack[stackcounter].result = ack;
-                    stackcounter++;
-                  }
-      						retry--;
-      						if(retry==0)
-      						{
-                    for(stackcounter = 0; stackcounter < 20; stackcounter++)
-                    {
-                      chprintf(chp, "byte: %x, result: %x \r\n", stack[stackcounter].byte, stack[stackcounter].result);
-                      if(stack[stackcounter].result!=0)
-                      {
-                        chprintf(chp, "=============\r\n“");
-                      }
-                    }
       							return;
       						}
       						goto begin;
