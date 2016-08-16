@@ -92,7 +92,7 @@ static void cmd_pipe (BaseSequentialStream *chp, int argc, char *argv[])
     DEBUG_INIT (chp);
 
 	//For debugging
-
+/*
     savedEDID[0] = 0x00;
     savedEDID[1] = 0xFF;
     savedEDID[2] = 0xFF;
@@ -101,13 +101,16 @@ static void cmd_pipe (BaseSequentialStream *chp, int argc, char *argv[])
     savedEDID[5] = 0xFF;
     savedEDID[6] = 0xFF;
     savedEDID[7] = 0x00;
-
+*/
     chprintf(chp, "ACK: 0, NACK: 1, STOP: 2, START: 3\r\n");
     chprintf(chp, "data: \r\n");
-    for(int i = 0; i < 8; i++)
+
+    //Printing the captured EDID
+    for(int i = 0; i < 128; i++)
     {
 	     chprintf(chp, "%x ", savedEDID[i]);
     }
+
     chprintf(chp, "\r\n");
     BBI2C_Init (&i2cdev, GPIOC, 10, GPIOC, 11, 50000, BBI2C_MODE_SLAVE);
 
@@ -123,11 +126,11 @@ begin:
 		  { //ACK, Sende erstes Byte, warte auf Ack
 			     //chprintf(chp, "found 0xA1 \r\n");
            //For debugging: try to send header
-	   		   for(count = 0; count < 9; count ++)
+	   		   for(count = 0; count < 128; count ++)
 			     {
       				//chprintf(chp, "trying to send %d \r\n", savedEDID[count]);
       				ack = BBI2C_Send_Byte_To_Master ((&i2cdev), savedEDID[count]);
-      				if(count <8)
+      				if(count <127)
       				{
                 //NACK received
       					if(ack==1)
@@ -215,8 +218,9 @@ begin:
       				}
       				else
       				{
+                chprintf(chp, "data: %x", savedEDID[count]);
                 chprintf(chp, "fertig");
-      					if(ack==0)
+      					if(ack==1)
       					{
       						chprintf(chp, "stop of transmission");
       						return;
