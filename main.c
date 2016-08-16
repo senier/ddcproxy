@@ -78,7 +78,16 @@ static void cmd_pipe (BaseSequentialStream *chp, int argc, char *argv[])
     BBI2C_t i2cdev;
     uint8_t count;
     uint8_t ack;
-    uint8_t retry = 10;
+    uint32_t retry = 10;
+
+    typedef struct
+    {
+      uint32_t byte;
+      uint32_t result;
+    } debug_t;
+
+    debug_t stack[20];
+    uint32_t stackcounter = 0;
 
     DEBUG_INIT (chp);
 
@@ -93,67 +102,123 @@ static void cmd_pipe (BaseSequentialStream *chp, int argc, char *argv[])
     savedEDID[6] = 0xFF;
     savedEDID[7] = 0x00;
 
-    chprintf(chp, "data: ");
+    chprintf(chp, "ACK: 0, NACK: 1, STOP: 2, START: 3\r\n");
+    chprintf(chp, "data: \r\n");
     for(int i = 0; i < 8; i++)
     {
 	     chprintf(chp, "%x ", savedEDID[i]);
     }
     chprintf(chp, "\r\n");
-    BBI2C_Init (&i2cdev, GPIOC, 10, GPIOC, 11, 10000, BBI2C_MODE_SLAVE);
+    BBI2C_Init (&i2cdev, GPIOC, 10, GPIOC, 11, 50000, BBI2C_MODE_SLAVE);
 
     //Store all captured Bytes in an array. Print after 10 captured bytes.
-    chprintf (chp, "Sampling Line: ");
+    chprintf (chp, "Sampling Line: \r\n");
     for (;;)
     {
 begin:
       data = BBI2C_Get_Byte (&i2cdev);
+      count = 0;
       // chprintf(chp, "gelesenes byte: %x \r\n", data);
  	   	if(data == 0xA1)
 		  { //ACK, Sende erstes Byte, warte auf Ack
-			     chprintf(chp, "found 0xA1 \r\n");
-	   		   for(count = 0; count < 8; count ++)
+			     //chprintf(chp, "found 0xA1 \r\n");
+           //For debugging: try to send header
+	   		   for(count = 0; count < 9; count ++)
 			     {
-      				chprintf(chp, "trying to send %d \r\n", savedEDID[count]);
+      				//chprintf(chp, "trying to send %d \r\n", savedEDID[count]);
       				ack = BBI2C_Send_Byte_To_Master ((&i2cdev), savedEDID[count]);
       				if(count <8)
       				{
+                //NACK received
       					if(ack==1)
       					{
-      						chprintf(chp, "no ack for %x \r\n", savedEDID[count]);
+                  if(stackcounter < (sizeof(stack)/sizeof(debug_t)))
+                  {
+                    stack[stackcounter].byte = savedEDID[count];
+                    stack[stackcounter].result = ack;
+                    stackcounter++;
+                  }
       						retry--;
       						if(retry==0)
       						{
+                    for(stackcounter = 0; stackcounter < 20; stackcounter++)
+                    {
+                      chprintf(chp, "byte: %x, result: %x \r\n", stack[stackcounter].byte, stack[stackcounter].result);
+                      if(stack[stackcounter].result!=0)
+                      {
+                        chprintf(chp, "=============\r\n");
+                      }
+                    }
       							return;
       						}
       						goto begin;
       					}
+                //STOP received
       					else if (ack==2)
       					{
-      						chprintf(chp, "STOP condition encountered \r\n");
+                  if(stackcounter < (sizeof(stack)/sizeof(debug_t)))
+                  {
+                    stack[stackcounter].byte = savedEDID[count];
+                    stack[stackcounter].result = ack;
+                    stackcounter++;
+                  }
       						retry--;
       						if(retry==0)
       						{
+                    for(stackcounter = 0; stackcounter < 20; stackcounter++)
+                    {
+                      chprintf(chp, "byte: %x, result: %x \r\n", stack[stackcounter].byte, stack[stackcounter].result);
+                      if(stack[stackcounter].result!=0)
+                      {
+                        chprintf(chp, "=============\r\n");
+                      }
+                    }
       							return;
       						}
       						goto begin;
       					}
+                //Start received
       					else if (ack==3)
       					{
-      						chprintf(chp, "Start condition encountered \r\n");
+                  if(stackcounter < (sizeof(stack)/sizeof(debug_t)))
+                  {
+                    stack[stackcounter].byte = savedEDID[count];
+                    stack[stackcounter].result = ack;
+                    stackcounter++;
+                  }
       						retry--;
       						if(retry==0)
       						{
+                    for(stackcounter = 0; stackcounter < 20; stackcounter++)
+                    {
+                      chprintf(chp, "byte: %x, result: %x \r\n", stack[stackcounter].byte, stack[stackcounter].result);
+                      if(stack[stackcounter].result!=0)
+                      {
+                        chprintf(chp, "=============\r\n“");
+                      }
+                    }
       							return;
       						}
       						goto begin;
       					}
+                //ACK received
+                else
+                {
+                  if(stackcounter < (sizeof(stack)/sizeof(debug_t)))
+                  {
+                    stackcounter=0;
+                    stack[stackcounter].byte = savedEDID[count];
+                    stack[stackcounter].result = ack;
+                    stackcounter++;
+                  }
+                }
       				}
       				else
       				{
-      					if(ack)
+                chprintf(chp, "fertig");
+      					if(ack==0)
       					{
       						chprintf(chp, "stop of transmission");
-      						BBI2C_Stop (&i2cdev);
       						return;
       					}
       				}
