@@ -36,6 +36,10 @@ DEBUG_DEF
 
 uint8_t savedEDID[128];
 
+void Drive_SDA (BBI2C_t *dev, int sda);
+void BBI2C_Ack (BBI2C_t *dev);
+int atoi (const char *string);
+
 static void cmd_sample (BaseSequentialStream *chp, int argc, char *argv[])
 {
     uint8_t data;
