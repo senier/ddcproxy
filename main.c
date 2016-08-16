@@ -254,7 +254,7 @@ static void cmd_edid (BaseSequentialStream *chp, int argc, char *argv[])
 	BBI2C_Init (&i2cdev, GPIOC, 4, GPIOC, 5, 50000, BBI2C_MODE_MASTER);
 	BBI2C_Start (&i2cdev);
 
-        ack = BBI2C_Send_Byte (&i2cdev, addr);
+  ack = BBI2C_Send_Byte (&i2cdev, addr);
 	if(ack)
 	{
 		chprintf(chp, "Read EDID: \r\n");
@@ -277,7 +277,7 @@ static void cmd_edid (BaseSequentialStream *chp, int argc, char *argv[])
 		BBI2C_Stop(&i2cdev);
 		return;
 	}
-       BBI2C_Stop(&i2cdev);
+  BBI2C_Stop(&i2cdev);
 }
 
 static void cmd_ddc (BaseSequentialStream *chp, int argc, char *argv[])
