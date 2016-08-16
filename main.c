@@ -44,7 +44,7 @@ static void cmd_sample (BaseSequentialStream *chp, int argc, char *argv[])
 {
     uint8_t data;
     BBI2C_t i2cdev;
-    uint8_t samples[30];
+    uint8_t samples[15];
     uint8_t samplecount = 0;
 
     DEBUG_INIT (chp);
@@ -56,19 +56,19 @@ static void cmd_sample (BaseSequentialStream *chp, int argc, char *argv[])
     for (;;)
     {
         data = BBI2C_Get_Byte (&i2cdev);
-	if(samplecount < 30)
-	{
-        samples[samplecount] = data;
-		samplecount++;
-	}
-	else
-	{
-		for(samplecount = 0; samplecount < 30; samplecount++)
-		{
-			chprintf(chp, "%x ", samples[samplecount]);
-		}
-		samplecount = 0;
-	}
+      	if(samplecount < 15)
+      	{
+          samples[samplecount] = data;
+      		samplecount++;
+      	}
+      	else
+      	{
+      		for(samplecount = 0; samplecount < 15; samplecount++)
+      		{
+      			chprintf(chp, "%x ", samples[samplecount]);
+      		}
+      		samplecount = 0;
+      	}
     }
 }
 
