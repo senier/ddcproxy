@@ -80,6 +80,8 @@ static void cmd_pipe (BaseSequentialStream *chp, int argc, char *argv[])
     uint8_t count;
     uint8_t ack;
     uint32_t retry = 10;
+    uint32_t stackcounter = 0;
+    uint32_t ackcounter = 0;
 
     typedef struct
     {
@@ -88,14 +90,14 @@ static void cmd_pipe (BaseSequentialStream *chp, int argc, char *argv[])
     } debug_t;
 
     debug_t stack[20];
-    uint32_t stackcounter = 0;
-
-    uint32_t ackcounter = 0;
 
     DEBUG_INIT (chp);
 
-    chprintf(chp, "ACK: 0, NACK: 1, STOP: 2, START: 3\r\n");
-    chprintf(chp, "data: \r\n");
+    if(read_edid (&savedEDID)<0)
+    {
+       chprintf(chp, "EDID Read failed");
+       return;
+    }
 
     //Printing the captured EDID
     for(int i = 0; i < 128; i++)
