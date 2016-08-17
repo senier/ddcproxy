@@ -94,17 +94,6 @@ static void cmd_pipe (BaseSequentialStream *chp, int argc, char *argv[])
 
     DEBUG_INIT (chp);
 
-	//For debugging
-/*
-    savedEDID[0] = 0x00;
-    savedEDID[1] = 0xFF;
-    savedEDID[2] = 0xFF;
-    savedEDID[3] = 0xFF;
-    savedEDID[4] = 0xFF;
-    savedEDID[5] = 0xFF;
-    savedEDID[6] = 0xFF;
-    savedEDID[7] = 0x00;
-*/
     chprintf(chp, "ACK: 0, NACK: 1, STOP: 2, START: 3\r\n");
     chprintf(chp, "data: \r\n");
 
@@ -137,16 +126,13 @@ begin:
         }
       }
  	   	if(data == 0xA1)
-		  { //ACK, Sende erstes Byte, warte auf Ack
-			     //chprintf(chp, "found 0xA1 \r\n");
-           //For debugging: try to send header
+		  {
 	   		   for(count = 0; count < 128; count ++)
 			     {
-      				//chprintf(chp, "trying to send %d \r\n", savedEDID[count]);
       				ack = BBI2C_Send_Byte_To_Master ((&i2cdev), savedEDID[count]);
       				if(count <127)
       				{
-                //NACK received
+                //NACK/START/STOP received
       					if(ack)
       					{
       						retry--;
@@ -173,10 +159,6 @@ begin:
       				}
 			    }
 	   	}
-	/*	else
-		{
-			chprintf(chp, "%x \r\n", data);
-		}**/
     }
 }
 
