@@ -89,8 +89,6 @@ static void cmd_pipe (BaseSequentialStream *chp, int argc, char *argv[])
     debug_t stack[20];
     uint32_t stackcounter = 0;
 
-    uint32_t ackcounter = 0;
-
     DEBUG_INIT (chp);
 
 	//For debugging
@@ -121,7 +119,6 @@ static void cmd_pipe (BaseSequentialStream *chp, int argc, char *argv[])
     for (;;)
     {
 begin:
-      ackcounter = 0;
       data = BBI2C_Get_Byte (&i2cdev);
       count = 0;
       // chprintf(chp, "gelesenes byte: %x \r\n", data);
@@ -149,16 +146,23 @@ begin:
                 //ACK received
                 else
                 {
-                  ackcounter++;
+                  if(stackcounter < (sizeof(stack)/sizeof(debug_t)))
+                  {
+                    stackcounter=0;
+                    stack[stackcounter].byte = savedEDID[count];
+                    stack[stackcounter].result = ack;
+                    stackcounter++;
+                  }
                 }
       				}
       				else
       				{
-                chprintf(chp, "total acks: %d\r\n", ackcounter);
-                chprintf(chp, "fertig\r\n");
+                chprintf(chp, "data: %x", savedEDID[count]);
+                chprintf(chp, "fertig");
       					if(ack==1)
       					{
-      						chprintf(chp, "stop of transmission\r\n");
+      						chprintf(chp, "stop of transmission");
+      						return;
       					}
       				}
 			    }
