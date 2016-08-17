@@ -19,6 +19,7 @@
 #include "usbcfg.h"
 #include "bbi2c.h"
 #include "debug.h"
+#include "ddcci.h"
 
 #include "shell.h"
 #include "chprintf.h"
@@ -190,37 +191,20 @@ static void cmd_pintest (BaseSequentialStream *chp, int argc, char *argv[])
 
 static void cmd_edid (BaseSequentialStream *chp, int argc, char *argv[])
 {
-	BBI2C_t i2cdev;
-	int k, ack;
-	int addr = 0xA1;
+  uint8_t i;
 
-	BBI2C_Init (&i2cdev, GPIOC, 4, GPIOC, 5, 50000, BBI2C_MODE_MASTER);
-	BBI2C_Start (&i2cdev);
-
-  ack = BBI2C_Send_Byte (&i2cdev, addr);
-	if(ack)
-	{
-		chprintf(chp, "Read EDID: \r\n");
-		for(k = 0; k < 128; k++)
-		{
-			BBI2C_Recv_Byte (&i2cdev, &savedEDID[k]);
-			if (k==127) BBI2C_NACK (&i2cdev);
-			else BBI2C_Ack (&i2cdev);
-		}
-		for (k = 0; k < 128; k++)
-		{
-			 if((k%8)==0) chprintf(chp, "\r\n");
-			 chprintf (chp, "%x ", savedEDID[k]);
-		}
-	}
-	else
-	{
-		chprintf(chp, "NACK on request - try again!\r\n");
-		BBI2C_NACK(&i2cdev);
-		BBI2C_Stop(&i2cdev);
-		return;
-	}
-  BBI2C_Stop(&i2cdev);
+  chprintf(chp, "Read EDID: \r\n");
+  if(read_edid (&savedEDID)<0)
+  {
+    chprintf(chp, "Reading EDID failed");
+  }
+  else
+  {
+    for(i = 0; i < 128; i++)
+    {
+      chprintf(chp, "%x ", savedEDID[i]);
+    }
+  }
 }
 
 static void cmd_ddc (BaseSequentialStream *chp, int argc, char *argv[])
