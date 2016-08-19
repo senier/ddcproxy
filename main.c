@@ -36,6 +36,7 @@
 DEBUG_DEF
 
 uint8_t savedEDID[128];
+uint8_t capRequest[6] = {0x6E, 0x51, 0x83, 0xF3, 0x00, 0x00};
 
 void Drive_SDA (BBI2C_t *dev, int sda);
 void BBI2C_Ack (BBI2C_t *dev);
@@ -153,11 +154,14 @@ begin:
       				else
       				{
                 chprintf(chp, "total acks: %d\r\n", ackcounter);
-                chprintf(chp, "fertig\r\n");
-      					if(ack==1)
-      					{
-      						chprintf(chp, "stop of transmission\r\n");
-      					}
+                chprintf(chp, "EDID transferred\r\n");
+                chprintf(chp, "Write to DDC/CI\r\n");
+                if(ddcci_write_slave(&capRequest, 6) < 0)
+                {
+                  chprintf(chp, "ddciwrite failed");
+                }
+                else chprintf(chp, "ddcciwrite succeeded");
+
       				}
 			    }
 	   	}

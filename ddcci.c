@@ -24,13 +24,46 @@
 #include "shell.h"
 #include "chprintf.h"
 
-#define DEFAULT_DDCCI_ADDR 0x6E
+//ADDRESSES
 #define DEFAULT_EDID_W_ADDR 0xA0
 #define DEFAULT_EDID_R_ADDR 0xA1
+#define DEFAULT_DDCCI_ADDR 0x6E
 
-int ddcci_write(BBI2C_t *dev)
+//OTHER FIXED VALUES
+#define DEFAULT_DDCCI_LENGTH 0x80
+#define DDCCI_RECEIVE_INITIAL_CHK 0x51
+
+int ddcci_write_slave(uint8_t *stream, uint8_t len)
 {
+    uint8_t i, ack;
+    uint8_t send = 1;
 
+    BBI2C_t dev;
+    BBI2C_Init (&dev, GPIOC, 4, GPIOC, 5, 50000, BBI2C_MODE_MASTER);
+    BBI2C_Start (&dev);
+
+    for(i = 0; i < len; i++)
+    {
+      ack = BBI2C_Send_Byte (&dev, stream[i]);
+      if(!ack)
+      {
+        BBI2C_Stop (&dev);
+        return -1;
+      }
+      chprintf(&SDU1, "ack on %x \r\n", stream[i]);
+    }
+
+    ack = BBI2C_Send_Byte (&dev, checksum(send, &stream, len));
+    if(!ack)
+    {
+      BBI2C_Stop (&dev);
+      return -1;
+    }
+    uint8_t chk = checksum(send, &stream, len);
+    chprintf(&SDU1, "ack on %x \r\n", chk);
+
+    BBI2C_Stop (&dev);
+    return 0;
 }
 
 int ddcci_read(BBI2C_t *dev)
@@ -108,4 +141,23 @@ int read_edid(uint8_t *edid)
   } while(retry);
 
   return -1;
+}
+
+uint8_t checksum (uint8_t send, uint8_t *stream, uint8_t len)
+{
+  uint8_t i = 0;
+  if(send)
+  {
+      uint8_t checksum = DEFAULT_DDCCI_ADDR;
+      for (i = 1; i < len; i++)
+      {
+        checksum ^= stream[i];
+      }
+      return checksum;
+  }
+  else
+  {
+    uint8_t checksum = DDCCI_RECEIVE_INITIAL_CHK;
+    return checksum;
+  }
 }
