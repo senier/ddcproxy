@@ -181,17 +181,22 @@ static void cmd_pintest (BaseSequentialStream *chp, int argc, char *argv[])
 static void cmd_edid (BaseSequentialStream *chp, int argc, char *argv[])
 {
   uint8_t i;
+  uint8_t retry = 3;
 
   chprintf(chp, "Read EDID: \r\n");
-  if(read_edid (&savedEDID)<0)
+  for(i = 0; i < retry; i++)
   {
-    chprintf(chp, "Reading EDID failed");
-  }
-  else
-  {
-    for(i = 0; i < 128; i++)
+    if(read_edid (&savedEDID)<0)
     {
-      chprintf(chp, "%x ", savedEDID[i]);
+      chprintf(chp, "Reading EDID failed");
+    }
+    else
+    {
+      for(i = 0; i < 128; i++)
+      {
+        chprintf(chp, "%x ", savedEDID[i]);
+      }
+      return;
     }
   }
 }

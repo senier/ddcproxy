@@ -43,6 +43,7 @@ int read_edid(uint8_t *edid)
 
   uint8_t ack, k;
   uint8_t retry = 3;
+  uint8_t cycle = 1;
 
   BBI2C_t dev;
   BBI2C_Init (&dev, GPIOC, 4, GPIOC, 5, 50000, BBI2C_MODE_MASTER);
@@ -50,16 +51,53 @@ int read_edid(uint8_t *edid)
   do {
     BBI2C_Start (&dev);
     ack = BBI2C_Send_Byte (&dev, DEFAULT_EDID_R_ADDR);
+    chThdSleepMicroseconds(5);
     if(ack)
   	{
   		for(k = 0; k < 128; k++)
   		{
   			BBI2C_Recv_Byte (&dev, &edid[k]);
-  			if (k==127) BBI2C_NACK (&dev);
-  			else BBI2C_Ack (&dev);
+        if (k < 7) BBI2C_Ack (&dev);
+        else if(k > 6 && edid[k-7]==0x00 && edid[k]==0x00 && edid[k-5]==0xFF && edid[k-4]==0xFF && edid[k-3]==0xFF
+        && edid[k-2]==0xFF && edid[k-1]==0xFF && edid[k-6]==0xFF)
+        {
+            chprintf(&SDU1, "found header!\r\n");
+            BBI2C_NACK (&dev);
+            BBI2C_Stop (&dev);
+            edid[0] = 0x00;
+            edid[7] = 0x00;
+            edid[1] = 0xFF;
+            edid[2] = 0xFF;
+            edid[3] = 0xFF;
+            edid[4] = 0xFF;
+            edid[5] = 0xFF;
+            edid[6] = 0xFF;
+            k=7;
+            BBI2C_Start (&dev);
+            BBI2C_Send_Byte (&dev, DEFAULT_EDID_R_ADDR);
+        }
+        else if (k==127 && edid[0]==0x00 && edid[7]==0x00 && edid[1]==0xFF && edid[2]==0xFF && edid[3]==0xFF
+        && edid[4]==0xFF && edid[5]==0xFF && edid[6]==0xFF)
+        {
+          BBI2C_NACK (&dev);
+          BBI2C_Stop (&dev);
+          return 0;
+        }
+        else if (k < 127) BBI2C_Ack (&dev);
+        else
+        {
+          if(cycle)
+          {
+            BBI2C_NACK (&dev);
+            BBI2C_Stop (&dev);
+            BBI2C_Start (&dev);
+            BBI2C_Send_Byte (&dev, DEFAULT_EDID_R_ADDR);
+            k = 0;
+            cycle = 0;
+          }
+          else return -1;
+        }
   		}
-      BBI2C_Stop(&dev);
-      return 0;
   	}
   	else
   	{
