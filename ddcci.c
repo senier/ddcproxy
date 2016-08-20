@@ -28,6 +28,7 @@
 #define DEFAULT_EDID_W_ADDR 0xA0
 #define DEFAULT_EDID_R_ADDR 0xA1
 #define DEFAULT_DDCCI_ADDR 0x6E
+#define DEFAULT_DDCCI_R_ADDR 0x6F
 
 //OTHER FIXED VALUES
 #define DEFAULT_DDCCI_LENGTH 0x80
@@ -53,21 +54,57 @@ int ddcci_write_slave(uint8_t *stream, uint8_t len)
       chprintf(&SDU1, "ack on %x \r\n", stream[i]);
     }
 
-    ack = BBI2C_Send_Byte (&dev, checksum(send, &stream, len));
+    ack = BBI2C_Send_Byte (&dev, checksum(send, stream, len));
     if(!ack)
     {
       BBI2C_Stop (&dev);
       return -1;
     }
-    uint8_t chk = checksum(send, &stream, len);
-    chprintf(&SDU1, "ack on %x \r\n", chk);
+    uint8_t chk = checksum(send, stream, len);
+    chprintf(&SDU1, "ack on %02x \r\n", chk);
 
     BBI2C_Stop (&dev);
     return 0;
 }
 
-int ddcci_read(BBI2C_t *dev)
+int ddcci_read()
 {
+
+  BBI2C_t dev;
+  BBI2C_Init (&dev, GPIOC, 4, GPIOC, 5, 50000, BBI2C_MODE_MASTER);
+  BBI2C_Start (&dev);
+
+  uint8_t result[128];
+  uint8_t i, ack;
+  uint8_t msg_length = 0;
+  uint8_t chk;
+
+  chThdSleepMilliseconds (200);
+  ack = BBI2C_Send_Byte (&dev, DEFAULT_DDCCI_R_ADDR);
+  if(!ack) chprintf(&SDU1, "no ack on 6f while reading \r\n");
+
+  BBI2C_Recv_Byte (&dev, &result[0]);
+  BBI2C_Ack (&dev);
+  BBI2C_Recv_Byte (&dev, &result[1]);
+  BBI2C_Ack (&dev);
+  msg_length = result[1] & 0x7F;
+  chprintf(&SDU1, "length of ddc/ci message: %d \r\n", msg_length);
+
+  for(i = 0; i < msg_length; i++)
+  {
+    BBI2C_Recv_Byte (&dev, &result[i+2]);
+    BBI2C_Ack (&dev);
+  }
+
+  BBI2C_Recv_Byte (&dev, &result[msg_length+2]);
+  chprintf(&SDU1, "calculated chksum %02x\r\n", checksum(0, result, (msg_length+1)));
+  BBI2C_NACK (&dev);
+  BBI2C_Stop (&dev);
+
+  for(i = 0; i < (msg_length+3); i++)
+  {
+    chprintf(&SDU1, "%02x ", result[i]);
+  }
 
 }
 
@@ -143,21 +180,26 @@ int read_edid(uint8_t *edid)
   return -1;
 }
 
-uint8_t checksum (uint8_t send, uint8_t *stream, uint8_t len)
+uint8_t checksum (uint8_t send, uint8_t stream[], uint8_t len)
 {
   uint8_t i = 0;
+  uint8_t checksum = 0;
   if(send)
   {
-      uint8_t checksum = DEFAULT_DDCCI_ADDR;
-      for (i = 1; i < len; i++)
+      for (i = 0; i < len; i++)
       {
-        checksum ^= stream[i];
+        checksum ^= stream[i]; /* all but first, it's already initialized */
       }
       return checksum;
   }
-  else
+  else /* receving checksum is calculated different from sending checksum */
   {
-    uint8_t checksum = DDCCI_RECEIVE_INITIAL_CHK;
+    checksum = DEFAULT_DDCCI_R_ADDR; /* take 0x6f */
+    checksum ^= DDCCI_RECEIVE_INITIAL_CHK; /* for receving: second byte 0x51 */
+    for  (i = 1; i < len+1; i++)
+    {
+        checksum ^= stream[i];
+    }
     return checksum;
   }
 }

@@ -158,9 +158,13 @@ begin:
                 chprintf(chp, "Write to DDC/CI\r\n");
                 if(ddcci_write_slave(&capRequest, 6) < 0)
                 {
-                  chprintf(chp, "ddciwrite failed");
+                  chprintf(chp, "ddciwrite failed\r\n");
                 }
-                else chprintf(chp, "ddcciwrite succeeded");
+                else
+                {
+                   chprintf(chp, "ddcciwrite succeeded\r\n");
+                   ddcci_read();
+                }
 
       				}
 			    }
