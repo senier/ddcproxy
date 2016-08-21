@@ -79,23 +79,14 @@ static void cmd_pipe (BaseSequentialStream *chp, int argc, char *argv[])
     uint8_t data;
     BBI2C_t i2cdev;
     uint8_t count;
-    uint8_t ack, z, offhi, offlo;
+    uint8_t ack;
     uint32_t retry = 10;
-    uint32_t stackcounter = 0;
     uint32_t ackcounter = 0;
     uint8_t testval = 2;
 
-    typedef struct
-    {
-      uint32_t byte;
-      uint32_t result;
-    } debug_t;
-
-    debug_t stack[20];
-
     DEBUG_INIT (chp);
 
-    if(read_edid (&savedEDID)<0)
+    if(read_edid (savedEDID)<0)
     {
        chprintf(chp, "EDID Read failed\r\n");
        return;
@@ -184,7 +175,7 @@ static void cmd_edid (BaseSequentialStream *chp, int argc, char *argv[])
   chprintf(chp, "Read EDID: \r\n");
   for(i = 0; i < retry; i++)
   {
-    if(read_edid (&savedEDID)<0)
+    if(read_edid (savedEDID)<0)
     {
       chprintf(chp, "Reading EDID failed");
     }
@@ -249,12 +240,11 @@ static void cmd_ddcci (BaseSequentialStream *chp, int argc, char *argv[])
   uint8_t retry = 3;
   uint8_t offhi, offlo;
   uint8_t retrycap = 5;
-  uint8_t offset = 0;
 
   chprintf(chp, "Read EDID: \r\n");
   for(i = 0; i < retry; i++)
   {
-    if(read_edid (&savedEDID)<0)
+    if(read_edid (savedEDID)<0)
     {
       chprintf(chp, "Reading EDID failed \r\n");
     }

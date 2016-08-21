@@ -17,9 +17,9 @@
 #define DDCCI_H
 
 int ddcci_write_slave (uint8_t *stream, uint8_t len);
-int ddcci_read ();
+int ddcci_read (void);
 int read_edid (uint8_t *buf);
 uint8_t checksum (uint8_t send, uint8_t stream[], uint8_t len);
 uint8_t checkNullMessage (uint8_t val);
 
-#endif DDCCI_H //DDCCI_H
+#endif //DDCCI_H

@@ -34,6 +34,8 @@
 #define DEFAULT_DDCCI_LENGTH 0x80
 #define DDCCI_RECEIVE_INITIAL_CHK 0x51
 
+void BBI2C_Ack (BBI2C_t *dev);
+ 
 int ddcci_write_slave(uint8_t *stream, uint8_t len)
 {
     uint8_t i, ack;
@@ -51,7 +53,6 @@ int ddcci_write_slave(uint8_t *stream, uint8_t len)
         BBI2C_Stop (&dev);
         return -1;
       }
-      //chprintf(&SDU1, "ack on %x \r\n", stream[i]);
     }
 
     ack = BBI2C_Send_Byte (&dev, checksum(send, stream, len));
@@ -60,8 +61,6 @@ int ddcci_write_slave(uint8_t *stream, uint8_t len)
       BBI2C_Stop (&dev);
       return -1;
     }
-    uint8_t chk = checksum(send, stream, len);
-    //chprintf(&SDU1, "ack on %02x \r\n", chk);
 
     BBI2C_Stop (&dev);
     return 0;

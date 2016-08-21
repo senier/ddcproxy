@@ -167,40 +167,44 @@ static BBI2C_Event_t BBI2C_Event (BBI2C_t *dev)
 
 uint8_t BBI2C_Get_Byte (BBI2C_t *dev)
 {
+
+    uint8_t result = 0;
+    int count = 8;
+
+/* activate when debugging
     typedef struct
     {
       BBI2C_State_t state;
       BBI2C_Level_t sda;
       BBI2C_Level_t scl;
-    } debug_t;
-
+    } debug_t
     BBI2C_State_t oldstate = 0;
-
-    uint8_t result = 0;
-    int count = 8;
     debug_t transitions[15];
     uint32_t tcounter = 0;
-
+*/
     for (;;)
     {
         BBI2C_Event_t event = BBI2C_Event (dev);
 
-	//if (tcounter < (sizeof(transitions)/sizeof(debug_t)))
-	//{
-	//  if(oldstate!=dev->state || dev->state!=BS_Wait_Start){
-	//     transitions[tcounter].state = dev->state;
-        //     transitions[tcounter].sda = event.sda;
-	//    transitions[tcounter].scl = event.scl;
-	//     tcounter++;
-        //  }
-	//} else {
-	//     	for(tcounter = 0; tcounter < 15; tcounter++)
-	//	{
-	//		chprintf(&SDU1,"%d/%d/%d ", transitions[tcounter].state, transitions[tcounter].sda, transitions[tcounter].scl);
-	//	}
-        //   	tcounter = 0;
-        // 	}
-        //oldstate = dev->state;
+/* For debugging purpose
+	if (tcounter < (sizeof(transitions)/sizeof(debug_t)))
+	{
+	  if(oldstate!=dev->state || dev->state!=BS_Wait_Start)
+    {
+	     transitions[tcounter].state = dev->state;
+       transitions[tcounter].sda = event.sda;
+	     transitions[tcounter].scl = event.scl;
+	     tcounter++;
+    }
+	} else {
+	     	for(tcounter = 0; tcounter < 15; tcounter++)
+		{
+			chprintf(&SDU1,"%d/%d/%d ", transitions[tcounter].state, transitions[tcounter].sda, transitions[tcounter].scl);
+		}
+     	tcounter = 0;
+   	}
+  oldstate = dev->state;
+*/
 
 	// Go to BS_Start whenever a start condition is encountered
         if (START_CONDITION (event))
@@ -380,7 +384,7 @@ void BBI2C_Recv_Byte (BBI2C_t *dev, uint8_t *result)
 
 int BBI2C_Send_Byte_To_Master (BBI2C_t *dev, uint8_t data)
 {
-    unsigned char i, ack_bit;
+    unsigned char ack_bit;
     int count = 8;
     dev->state = BS_Clock_Avail;
     uint8_t init = 1;
