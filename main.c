@@ -83,6 +83,7 @@ static void cmd_pipe (BaseSequentialStream *chp, int argc, char *argv[])
     uint32_t retry = 10;
     uint32_t stackcounter = 0;
     uint32_t ackcounter = 0;
+    uint8_t testval = 2;
 
     typedef struct
     {
@@ -106,13 +107,17 @@ static void cmd_pipe (BaseSequentialStream *chp, int argc, char *argv[])
 	     chprintf(chp, "%x ", savedEDID[i]);
     }
 
+
     chprintf(chp, "\r\n");
     BBI2C_Init (&i2cdev, GPIOC, 10, GPIOC, 11, 50000, BBI2C_MODE_SLAVE);
 
     //Store all captured Bytes in an array. Print after 10 captured bytes.
     chprintf (chp, "Sampling Line: \r\n");
+
     for (;;)
     {
+      while(testval)
+      {
 begin:
       ackcounter = 0;
       data = BBI2C_Get_Byte (&i2cdev);
@@ -155,22 +160,17 @@ begin:
       				{
                 chprintf(chp, "total acks: %d\r\n", ackcounter);
                 chprintf(chp, "EDID transferred\r\n");
-                chprintf(chp, "Write to DDC/CI\r\n");
-                if(ddcci_write_slave(&capRequest, 6) < 0)
-                {
-                  chprintf(chp, "ddciwrite failed\r\n");
-                }
-                else
-                {
-                   chprintf(chp, "ddcciwrite succeeded\r\n");
-                   ddcci_read();
-                }
-
-      				}
+                testval--;
+              }
+      			}
 			    }
 	   	}
+
+      return;
     }
 }
+
+
 
 static void cmd_pintest (BaseSequentialStream *chp, int argc, char *argv[])
 {
