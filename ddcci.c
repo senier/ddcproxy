@@ -227,3 +227,9 @@ uint8_t checksum (uint8_t send, uint8_t stream[], uint8_t len)
     return checksum;
   }
 }
+
+uint8_t checkNullMessage (uint8_t val)
+{
+  if (val == 0x80) return 1;
+  else return 0;
+}
