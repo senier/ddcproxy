@@ -70,8 +70,9 @@ int ddcci_write_slave(uint8_t *stream, uint8_t len)
 int ddcci_read()
 {
 
+  chThdSleepMilliseconds (60);
   BBI2C_t dev;
-  BBI2C_Init (&dev, GPIOC, 4, GPIOC, 5, 50000, BBI2C_MODE_MASTER);
+  BBI2C_Init (&dev, GPIOC, 4, GPIOC, 5, 10000, BBI2C_MODE_MASTER);
   BBI2C_Start (&dev);
 
   uint8_t result[128];
