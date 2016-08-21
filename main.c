@@ -123,16 +123,6 @@ begin:
       data = BBI2C_Get_Byte (&i2cdev);
       count = 0;
       // chprintf(chp, "gelesenes byte: %x \r\n", data);
-      if(data == 0x6E)
-      {
-        for(int k = 0; k < 5; k++)
-        {
-          if(BBI2C_Get_Byte (&i2cdev) == 0x83)
-          {
-            chprintf(chp, "ddcci req \r\n");
-          }
-        }
-      }
  	   	if(data == 0xA1)
 		  {
 	   		   for(count = 0; count < 128; count ++)
