@@ -51,7 +51,7 @@ int ddcci_write_slave(uint8_t *stream, uint8_t len)
         BBI2C_Stop (&dev);
         return -1;
       }
-      chprintf(&SDU1, "ack on %x \r\n", stream[i]);
+      //chprintf(&SDU1, "ack on %x \r\n", stream[i]);
     }
 
     ack = BBI2C_Send_Byte (&dev, checksum(send, stream, len));
@@ -61,7 +61,7 @@ int ddcci_write_slave(uint8_t *stream, uint8_t len)
       return -1;
     }
     uint8_t chk = checksum(send, stream, len);
-    chprintf(&SDU1, "ack on %02x \r\n", chk);
+    //chprintf(&SDU1, "ack on %02x \r\n", chk);
 
     BBI2C_Stop (&dev);
     return 0;

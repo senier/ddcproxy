@@ -97,7 +97,7 @@ static void cmd_pipe (BaseSequentialStream *chp, int argc, char *argv[])
 
     if(read_edid (&savedEDID)<0)
     {
-       chprintf(chp, "EDID Read failed");
+       chprintf(chp, "EDID Read failed\r\n");
        return;
     }
 
