@@ -98,7 +98,6 @@ static void cmd_pipe (BaseSequentialStream *chp, int argc, char *argv[])
 	     chprintf(chp, "%x ", savedEDID[i]);
     }
 
-
     chprintf(chp, "\r\n");
     BBI2C_Init (&i2cdev, GPIOC, 10, GPIOC, 11, 50000, BBI2C_MODE_SLAVE);
 
@@ -146,7 +145,6 @@ begin:
       			}
 			    }
 	   	}
-
       return;
     }
 }
@@ -220,7 +218,7 @@ static void cmd_ddc (BaseSequentialStream *chp, int argc, char *argv[])
     for (i = 0; i < 8; i++)
     {
         BBI2C_Recv_Byte (&i2cdev, &header[i]);
-	BBI2C_Ack (&i2cdev);
+      	BBI2C_Ack (&i2cdev);
         if (!ack)
         {
             BBI2C_Stop (&i2cdev);
@@ -274,14 +272,14 @@ static void cmd_ddcci (BaseSequentialStream *chp, int argc, char *argv[])
     else
     {
        chprintf(chp, "ddcciwrite succeeded\r\n");
-       if(ddcci_read() < 0)
+       if(ddcci_read_slave() < 0)
        {
          chprintf(chp, "failed reading ddc/ci, retrying\r\n");
          while(retrycap)
          {
            if(ddcci_write_slave (capRequest, 6) == 0)
            {
-             if(ddcci_read() < 0)
+             if(ddcci_read_slave() < 0)
              {
                chprintf(chp, "failed reading ddc/ci, retrying\r\n");
              }  else break;
