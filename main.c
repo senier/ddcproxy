@@ -36,7 +36,7 @@
 DEBUG_DEF
 
 uint8_t savedEDID[128];
-uint8_t capRequest[6] = {0x6E, 0x51, 0x83, 0xF3, 0x00, 0x00};
+uint8_t capRequest[6] = {0x6E, 0x51, 0x83, 0xF3};
 
 void Drive_SDA (BBI2C_t *dev, int sda);
 void BBI2C_Ack (BBI2C_t *dev);
@@ -79,7 +79,7 @@ static void cmd_pipe (BaseSequentialStream *chp, int argc, char *argv[])
     uint8_t data;
     BBI2C_t i2cdev;
     uint8_t count;
-    uint8_t ack;
+    uint8_t ack, z, offhi, offlo;
     uint32_t retry = 10;
     uint32_t stackcounter = 0;
     uint32_t ackcounter = 0;
@@ -252,12 +252,75 @@ static void cmd_ddc (BaseSequentialStream *chp, int argc, char *argv[])
    chprintf (chp, "Sent command to %x, ack: %d, result: %2x%2x%2x%2x%2x%2x%2x%2x: %d\r\n", addr, ack, header[0], header[1], header[2], header[3], header[4], header[5], header[6], header[7]);
 }
 
+static void cmd_ddcci (BaseSequentialStream *chp, int argc, char *argv[])
+{
+
+  uint8_t i;
+  uint8_t retry = 3;
+  uint8_t offhi, offlo;
+  uint8_t retrycap = 5;
+  uint8_t offset = 0;
+
+  chprintf(chp, "Read EDID: \r\n");
+  for(i = 0; i < retry; i++)
+  {
+    if(read_edid (&savedEDID)<0)
+    {
+      chprintf(chp, "Reading EDID failed \r\n");
+    }
+    else
+    {
+      for(i = 0; i < 128; i++)
+      {
+        chprintf(chp, "%x ", savedEDID[i]);
+      }
+      chprintf(chp, "\r\n");
+      break;
+    }
+  }
+  chprintf(chp, "Write to DDC/CI\r\n");
+  uint16_t offsetlist[10] = {0x00, 0x20, 0x40, 0x60, 0x80, 0xA0, 0xC0, 0xE0, 0x100, 0x108};
+  for(int z = 0; z < 10; z++)
+  {
+    offhi = offsetlist[z] >> 8;
+    offlo = offsetlist[z] & 255;
+    capRequest[4] = offhi;
+    capRequest[5] = offlo;
+    retrycap = 5;
+    if(ddcci_write_slave (capRequest, 6) < 0)
+    {
+      chprintf(chp, "ddcciwrtie failed\r\n");
+    }
+    else
+    {
+       chprintf(chp, "ddcciwrite succeeded\r\n");
+       if(ddcci_read() < 0)
+       {
+         chprintf(chp, "failed reading ddc/ci, retrying\r\n");
+         while(retrycap)
+         {
+           if(ddcci_write_slave (capRequest, 6) == 0)
+           {
+             if(ddcci_read() < 0)
+             {
+               chprintf(chp, "failed reading ddc/ci, retrying\r\n");
+             }  else break;
+           }
+           retrycap--;
+         }
+       }
+       chThdSleepMilliseconds (50);
+    }
+  }
+}
+
 static const ShellCommand commands[] = {
   {"ddc", cmd_ddc},
   {"pipe", cmd_pipe},
   {"sample", cmd_sample},
   {"edid", cmd_edid},
   {"pintest", cmd_pintest},
+  {"comm", cmd_ddcci},
   {NULL, NULL}
 };
 
