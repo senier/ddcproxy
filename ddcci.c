@@ -80,33 +80,56 @@ int ddcci_read()
   uint8_t msg_length = 0;
   uint8_t chk;
 
-  chThdSleepMilliseconds (200);
   ack = BBI2C_Send_Byte (&dev, DEFAULT_DDCCI_R_ADDR);
   if(!ack) chprintf(&SDU1, "no ack on 6f while reading \r\n");
+  chThdSleepMicroseconds(5);
 
   BBI2C_Recv_Byte (&dev, &result[0]);
   BBI2C_Ack (&dev);
+  chThdSleepMicroseconds(5);
+
   BBI2C_Recv_Byte (&dev, &result[1]);
   BBI2C_Ack (&dev);
   msg_length = result[1] & 0x7F;
-  chprintf(&SDU1, "length of ddc/ci message: %d \r\n", msg_length);
+  chThdSleepMicroseconds(5);
 
-  for(i = 0; i < msg_length; i++)
+  if(checkNullMessage (result[1])) /* Null message */
   {
-    BBI2C_Recv_Byte (&dev, &result[i+2]);
-    BBI2C_Ack (&dev);
+    msg_length = 0;
+    chprintf(&SDU1, "nullmessage from monitor\r\n");
+  }
+  else if (msg_length > 35)/* length only 3-35 as defined in vesa ddc/di doc */
+  {
+    chprintf(&SDU1, "invalid message length, got %02x \r\n", result[1]);
+    BBI2C_NACK (&dev);
+    BBI2C_Stop (&dev);
+    return -1;
+  }
+  else /* Not a null message and valid fragment length */
+  {
+    chprintf(&SDU1, "length of ddc/ci message: %d \r\n", msg_length);
+    for(i = 0; i < msg_length; i++)
+    {
+      BBI2C_Recv_Byte (&dev, &result[i+2]);
+      BBI2C_Ack (&dev);
+      chThdSleepMicroseconds(5);
+    }
   }
 
   BBI2C_Recv_Byte (&dev, &result[msg_length+2]);
-  chprintf(&SDU1, "calculated chksum %02x\r\n", checksum(0, result, (msg_length+1)));
   BBI2C_NACK (&dev);
   BBI2C_Stop (&dev);
+
+  chk = checksum(0, result, (msg_length+1));
+  if(chk != result[msg_length+2]) return -2;
+  chprintf(&SDU1, "calculated chksum %02x\r\n", chk);
 
   for(i = 0; i < (msg_length+3); i++)
   {
     chprintf(&SDU1, "%02x ", result[i]);
   }
-
+  return 0;
+  chprintf(&SDU1, "\r\n");
 }
 
 int read_edid(uint8_t *edid)
