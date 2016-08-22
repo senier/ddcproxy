@@ -116,7 +116,7 @@ static void cmd_pipe (BaseSequentialStream *chp, int argc, char *argv[])
     uint8_t ack;
     uint32_t retry = 10;
     uint32_t ackcounter = 0;
-    uint8_t testval = 2;
+    uint8_t testval = 3;
 
     DEBUG_INIT (chp);
 
@@ -369,7 +369,7 @@ static void cmd_ddcci (BaseSequentialStream *chp, int argc, char *argv[])
   }
 
   chprintf(chp, "Write to DDC/CI\r\n");
-  uint16_t offsetlist[10] = {0x00, 0x20, 0x40, 0x60, 0x80, 0xA0, 0xC0, 0xE0, 0x100, 0x108};
+  uint16_t offsetlist[10] = {0x00, 0x20, 0x40, 0x60, 0x80, 0xA0, 0xC0, 0xE0, 0xFE, 0x108};
   for(int z = 0; z < 10; z++)
   {
     offhi = offsetlist[z] >> 8;
@@ -436,6 +436,11 @@ static void cmd_ddcci (BaseSequentialStream *chp, int argc, char *argv[])
        }
        chThdSleepMilliseconds (50);
     }
+    for(i = 0; i < 38; i++)
+    {
+      chprintf(chp, "%02x ", capAnswer[i]);
+    }
+    chprintf(chp, "\r\n", capAnswer[i]);
   }
 
 }
