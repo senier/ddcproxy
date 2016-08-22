@@ -419,14 +419,14 @@ static void cmd_ddcci (BaseSequentialStream *chp, int argc, char *argv[])
     else
     {
        chprintf(chp, "ddcciwrite succeeded\r\n");
-       if(ddcci_read_slave() < 0)
+       if(ddcci_read_slave(capAnswer) < 0)
        {
          chprintf(chp, "failed reading ddc/ci, retrying\r\n");
          while(retrycap)
          {
            if(ddcci_write_slave (capRequest, 6) == 0)
            {
-             if(ddcci_read_slave() < 0)
+             if(ddcci_read_slave(capAnswer) < 0)
              {
                chprintf(chp, "failed reading ddc/ci, retrying\r\n");
              }  else break;
