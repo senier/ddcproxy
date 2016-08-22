@@ -239,7 +239,10 @@ static void cmd_ddcci (BaseSequentialStream *chp, int argc, char *argv[])
   uint8_t i;
   uint8_t retry = 3;
   uint8_t offhi, offlo;
-  uint8_t retrycap = 5;
+  signed int rcwrite, rcread;
+  uint8_t retryread = 5;
+  uint8_t retrywrite = 5;
+  uint8_t retrycap;
 
   chprintf(chp, "Read EDID: \r\n");
   for(i = 0; i < retry; i++)
@@ -258,6 +261,7 @@ static void cmd_ddcci (BaseSequentialStream *chp, int argc, char *argv[])
       break;
     }
   }
+
   chprintf(chp, "Write to DDC/CI\r\n");
   uint16_t offsetlist[10] = {0x00, 0x20, 0x40, 0x60, 0x80, 0xA0, 0xC0, 0xE0, 0x100, 0x108};
   for(int z = 0; z < 10; z++)
@@ -266,7 +270,42 @@ static void cmd_ddcci (BaseSequentialStream *chp, int argc, char *argv[])
     offlo = offsetlist[z] & 255;
     capRequest[4] = offhi;
     capRequest[5] = offlo;
+    retryread = 10;
+    retrywrite = 10;
     retrycap = 5;
+/*
+    rcwrite = ddcci_write_slave (capRequest, 6);
+    while ((rcwrite < 0) && retrywrite)
+    {
+      chprintf (chp, "ddc/ci write failed\r\n");
+      chThdSleepMilliseconds(50);
+      rcwrite = ddcci_write_slave (capRequest, 6);
+      retrywrite--;
+    }
+    if(rcwrite < 0)
+    {
+      chprintf (chp, "couldn't write to ddc/ci address\r\n");
+      continue;
+    }
+    else
+    {
+      rcread = ddcci_read();
+      while((rcread < 0) && retryread)
+      {
+        chprintf (chp, "ddc/ci read invalid - retrying\r\n");
+        rcread = ddcci_read();
+        retryread--;
+      }
+      if(rcread < 0)
+      {
+        chprintf (chp, "couldn't read from ddc/ci address\r\n");
+        continue;
+      }
+    }
+    chThdSleepMilliseconds (50);
+  }
+*/
+
     if(ddcci_write_slave (capRequest, 6) < 0)
     {
       chprintf(chp, "ddcciwrtie failed\r\n");
@@ -292,6 +331,7 @@ static void cmd_ddcci (BaseSequentialStream *chp, int argc, char *argv[])
        chThdSleepMilliseconds (50);
     }
   }
+
 }
 
 static const ShellCommand commands[] = {

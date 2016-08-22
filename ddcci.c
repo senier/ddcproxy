@@ -35,7 +35,7 @@
 #define DDCCI_RECEIVE_INITIAL_CHK 0x51
 
 void BBI2C_Ack (BBI2C_t *dev);
- 
+
 int ddcci_write_slave(uint8_t *stream, uint8_t len)
 {
     uint8_t i, ack;
@@ -80,7 +80,11 @@ int ddcci_read()
   uint8_t chk;
 
   ack = BBI2C_Send_Byte (&dev, DEFAULT_DDCCI_R_ADDR);
-  if(!ack) chprintf(&SDU1, "no ack on 6f while reading \r\n");
+  if(!ack)
+  {
+     chprintf(&SDU1, "no ack on 6f while reading \r\n");
+     return -1;
+  }
   chThdSleepMicroseconds(5);
 
   BBI2C_Recv_Byte (&dev, &result[0]);
@@ -120,15 +124,15 @@ int ddcci_read()
   BBI2C_Stop (&dev);
 
   chk = checksum(0, result, (msg_length+1));
-  if(chk != result[msg_length+2]) return -2;
+  if(chk != result[msg_length+2]) return -1;
   chprintf(&SDU1, "calculated chksum %02x\r\n", chk);
 
   for(i = 0; i < (msg_length+3); i++)
   {
     chprintf(&SDU1, "%02x ", result[i]);
   }
-  return 0;
   chprintf(&SDU1, "\r\n");
+  return 0;
 }
 
 int read_edid(uint8_t *edid)
