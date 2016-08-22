@@ -66,7 +66,12 @@ int ddcci_write_slave(uint8_t *stream, uint8_t len)
     return 0;
 }
 
-int ddcci_read()
+int ddcci_write_master(uint8_t *stream, uint8_t *len)
+{
+  
+}
+
+int ddcci_read_slave()
 {
 
   chThdSleepMilliseconds (60);
