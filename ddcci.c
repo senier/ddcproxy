@@ -66,12 +66,29 @@ int ddcci_write_slave(uint8_t *stream, uint8_t len)
     return 0;
 }
 
-int ddcci_write_master(uint8_t *stream, uint8_t *len)
+int ddcci_write_master(uint8_t *stream, uint8_t len)
 {
-  
+  uint8_t i, ack, chk;
+  BBI2C_t dev;
+  BBI2C_Init (&dev, GPIOC, 10, GPIOC, 11, 50000, BBI2C_MODE_SLAVE);
+
+  for(i = 0; i < len; i++)
+  {
+    ack = BBI2C_Send_Byte_To_Master (&dev, stream[i]);
+    if (ack == 0)
+    {
+      continue;
+    }
+    else return -1;
+  }
+  chk = checksum (0, stream, len);
+  ack = BBI2C_Send_Byte_To_Master (&dev, chk);
+  if(ack == 1) return 0;
+  else return 1;
+
 }
 
-int ddcci_read_slave()
+int ddcci_read_slave(uint8_t *result)
 {
 
   chThdSleepMilliseconds (60);
@@ -79,7 +96,7 @@ int ddcci_read_slave()
   BBI2C_Init (&dev, GPIOC, 4, GPIOC, 5, 10000, BBI2C_MODE_MASTER);
   BBI2C_Start (&dev);
 
-  uint8_t result[128];
+  //uint8_t result[128];
   uint8_t i, ack;
   uint8_t msg_length = 0;
   uint8_t chk;
@@ -138,6 +155,34 @@ int ddcci_read_slave()
   }
   chprintf(&SDU1, "\r\n");
   return 0;
+}
+
+uint8_t * ddcci_read_master (BBI2C_t *dev)
+{
+  uint8_t data, len, i, chk;
+  static uint8_t result[128];
+  result[0] = 0x6E;
+  result[1] = 0x51;
+
+  data = BBI2C_Get_Byte (dev);
+  len = data & 0x0F;
+  result[2] = data;
+
+  for(i = 3; i < len+3; i++)
+  {
+    data = BBI2C_Get_Byte (dev);
+    result[i] = data;
+  }
+
+  data = BBI2C_Get_Byte (dev);
+  chk = checksum (1, result, len+2);
+  if(chk != data)
+  {
+     result[1]=0xFF;
+  }
+  result[len+3] = chk;
+
+  return result;
 }
 
 int read_edid(uint8_t *edid)
