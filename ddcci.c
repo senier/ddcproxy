@@ -34,6 +34,8 @@
 #define DEFAULT_DDCCI_LENGTH 0x80
 #define DDCCI_RECEIVE_INITIAL_CHK 0x51
 
+#define EDID_LENGTH 128
+
 void BBI2C_Ack (BBI2C_t *dev);
 
 int ddcci_write_slave(uint8_t *stream, uint8_t len)
@@ -185,10 +187,11 @@ uint8_t * ddcci_read_master (BBI2C_t *dev)
   return result;
 }
 
-int read_edid(uint8_t *edid)
+uint8_t * read_edid()
 {
 
   uint8_t ack, k;
+  static uint8_t edid[128];
   uint8_t retry = 3;
   uint8_t cycle = 1;
 
@@ -228,7 +231,7 @@ int read_edid(uint8_t *edid)
         {
           BBI2C_NACK (&dev);
           BBI2C_Stop (&dev);
-          return 0;
+          return edid;
         }
         else if (k < 127) BBI2C_Ack (&dev);
         else
@@ -242,7 +245,11 @@ int read_edid(uint8_t *edid)
             k = 0;
             cycle = 0;
           }
-          else return -1;
+          else
+          {
+            edid[0] = 0xFF;
+            return edid;
+          }
         }
   		}
   	}
@@ -254,7 +261,39 @@ int read_edid(uint8_t *edid)
   	}
   } while(retry);
 
-  return -1;
+  edid[0] = 0xFF;
+  return edid;
+}
+
+int write_edid (BBI2C_t i2cdev01, uint8_t *edid)
+{
+  uint8_t i, ack;
+
+  chprintf(&SDU1, "sending edid\r\n");
+
+  for (i = 0; i < EDID_LENGTH; i++)
+  {
+    ack = BBI2C_Send_Byte_To_Master (&i2cdev01, edid[i]);
+  //  if(i == 127) /* Check NACK of last Byte */
+  //  {
+      if (ack == 0) continue; /* Last Byte of EDID has to be NACK'ed */
+      else
+      {
+        chprintf(&SDU1, "NACK on %02x \r\n", edid[i]);
+        return -1;
+      }
+    }
+//    else /* Bytes 1-127 */
+//    {
+//      if (ack == 0) continue; /* Bytes 1-127 have to be ACK'ed */
+//      else
+//      {
+//        chprintf(&SDU1, "NACK on %02x \r\n", edid[i]);
+//        return -1;
+//      }
+//    }
+  
+  return 0;
 }
 
 uint8_t checksum (uint8_t send, uint8_t stream[], uint8_t len)
