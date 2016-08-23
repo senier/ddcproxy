@@ -274,25 +274,13 @@ int write_edid (BBI2C_t i2cdev01, uint8_t *edid)
   for (i = 0; i < EDID_LENGTH; i++)
   {
     ack = BBI2C_Send_Byte_To_Master (&i2cdev01, edid[i]);
-  //  if(i == 127) /* Check NACK of last Byte */
-  //  {
-      if (ack == 0) continue; /* Last Byte of EDID has to be NACK'ed */
+      if (ack == 0) continue; 
       else
       {
         chprintf(&SDU1, "NACK on %02x \r\n", edid[i]);
         return -1;
       }
     }
-//    else /* Bytes 1-127 */
-//    {
-//      if (ack == 0) continue; /* Bytes 1-127 have to be ACK'ed */
-//      else
-//      {
-//        chprintf(&SDU1, "NACK on %02x \r\n", edid[i]);
-//        return -1;
-//      }
-//    }
-  
   return 0;
 }
 
