@@ -275,6 +275,10 @@ int write_edid (BBI2C_t i2cdev01, uint8_t *edid)
   {
     ack = BBI2C_Send_Byte_To_Master (&i2cdev01, edid[i]);
       if (ack == 0) continue;
+      else if (i == 127)
+      {
+        if (ack == 1) return 0;
+      }
       else
       {
         chprintf(&SDU1, "NACK on %02x \r\n", edid[i]);
