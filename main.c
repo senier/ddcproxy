@@ -94,25 +94,26 @@ static void cmd_proxy (BaseSequentialStream *chp, int argc, char *argv[])
     {
       case MASTER_EDID_REQUEST:
 
-        if(firstTime)
+        if(firstTime) /* to have enough time to get edid, send invalid edid */
         {
           ack = write_edid (i2cdev01, dummyEDID);
           firstTime--;
-          savedEDID = read_edid();
+          savedEDID = read_edid(); /* cache valid edid */
         }
 
-        //Drive_SCL (&i2cdev01, 1);
         if(write_edid (i2cdev01, savedEDID) != 0)
         {
           chprintf(chp, "Writing EDID to Host failed\r\n");
         }
-        else
+        else /* EDID successfully sent to host */
         {
           chprintf(chp, "Sent EDID to Host\r\n");
         }
         break;
+
       case MASTER_WRITE_REQUEST:
         break;
+
       case MASTER_DDCCI_REQUEST:
         break;
       default:
