@@ -170,7 +170,7 @@ uint8_t * ddcci_read_master (BBI2C_t *dev, uint8_t len)
 
   fragment_length = len & 0x0F;
 
-  for(i = 0; i < len; i++)
+  for(i = 0; i < fragment_length; i++)
   {
     data = BBI2C_Get_Byte (dev);
     result[i+3] = data; /* +3 offset because of 0x6E, 0x51, 0x8X */
