@@ -124,7 +124,6 @@ static void cmd_proxy (BaseSequentialStream *chp, int argc, char *argv[])
         ddcci_request_length = BBI2C_Get_Byte (&i2cdev01); /* read length of the request */
         ddcRequest = ddcci_read_master (&i2cdev01, ddcci_request_length); /* Read request from master */
         data = BBI2C_Get_Byte (&i2cdev01);
-        chprintf(chp, "After collection ,read %02x \r\n", data);
         switch (ddcRequest[3])
         {
           case MASTER_DDCCI_CAPABILITY_REQUEST:
@@ -179,14 +178,17 @@ static void cmd_proxy (BaseSequentialStream *chp, int argc, char *argv[])
             }
             /* Now, send this information to the host */
             uint8_t messageLength = capAnswer[1] & 0x7F;
-            data = BBI2C_Get_Byte (&i2cdev01);
-            chprintf(chp, "After collection ,read %02x \r\n", data);
             if(data == MASTER_DDCCI_ANSWER_REQUEST)
             {
+              chprintf(chp, "Ich sollte jetzt schreiben\r\n");
               signed int returncode;
               returncode = ddcci_write_master (capAnswer, messageLength + 3, 0);
               if (returncode < 0) chprintf(chp, "no ack on bytes\r\n");
-              else if (returncode > 0) chprintf(chp, "ack on checksum\r\n");
+              else if (returncode > 0)
+              {
+                chprintf(chp, "ack on checksum\r\n");
+                firstCI = 1;
+              }
               else
               {
                 chprintf(chp, "transmission complete\r\n");
@@ -237,7 +239,7 @@ static void cmd_sample (BaseSequentialStream *chp, int argc, char *argv[])
       	}
     }
 }
-
+/*
 static void cmd_pipe (BaseSequentialStream *chp, int argc, char *argv[])
 {
     uint8_t data;
@@ -386,7 +388,7 @@ begin:
       return;
     }
 }
-
+*/
 
 
 static void cmd_pintest (BaseSequentialStream *chp, int argc, char *argv[])
@@ -542,7 +544,7 @@ static void cmd_ddcci (BaseSequentialStream *chp, int argc, char *argv[])
 
 static const ShellCommand commands[] = {
   {"ddc", cmd_ddc},
-  {"pipe", cmd_pipe},
+//  {"pipe", cmd_pipe},
   {"sample", cmd_sample},
   {"edid", cmd_edid},
   {"pintest", cmd_pintest},
