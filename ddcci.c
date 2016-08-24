@@ -68,7 +68,7 @@ int ddcci_write_slave(uint8_t *stream, uint8_t len)
     return 0;
 }
 
-int ddcci_write_master(uint8_t *stream, uint8_t len)
+int ddcci_write_master(uint8_t *stream, uint8_t len, uint8_t fakeChk)
 {
   uint8_t i, ack, chk;
   BBI2C_t dev;
@@ -84,6 +84,7 @@ int ddcci_write_master(uint8_t *stream, uint8_t len)
     else return -1;
   }
   chk = checksum (0, stream, len);
+  if(fakeChk) chk = 0x00;
   ack = BBI2C_Send_Byte_To_Master (&dev, chk);
   if(ack == 1) return 0;
   else return 1;
@@ -93,7 +94,7 @@ int ddcci_write_master(uint8_t *stream, uint8_t len)
 int ddcci_read_slave(uint8_t *result)
 {
 
-  chThdSleepMilliseconds (60);
+  chThdSleepMilliseconds (40);
   BBI2C_t dev;
   BBI2C_Init (&dev, GPIOC, 4, GPIOC, 5, 10000, BBI2C_MODE_MASTER);
   BBI2C_Start (&dev);
@@ -159,21 +160,20 @@ int ddcci_read_slave(uint8_t *result)
   return 0;
 }
 
-uint8_t * ddcci_read_master (BBI2C_t *dev)
+uint8_t * ddcci_read_master (BBI2C_t *dev, uint8_t len)
 {
-  uint8_t data, len, i, chk;
+  uint8_t data, i, chk, fragment_length;
   static uint8_t result[128];
   result[0] = 0x6E;
   result[1] = 0x51;
+  result[2] = len;
 
-  data = BBI2C_Get_Byte (dev);
-  len = data & 0x0F;
-  result[2] = data;
+  fragment_length = len & 0x0F;
 
-  for(i = 3; i < len+3; i++)
+  for(i = 0; i < len; i++)
   {
     data = BBI2C_Get_Byte (dev);
-    result[i] = data;
+    result[i+3] = data; /* +3 offset because of 0x6E, 0x51, 0x8X */
   }
 
   data = BBI2C_Get_Byte (dev);
