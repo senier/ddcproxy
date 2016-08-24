@@ -61,6 +61,8 @@ uint8_t dummyEDID[128] = /* Dummy EDID with wrong checksum */
 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01};
+uint8_t dummyCap[6] =
+{0x6E, 0x83, 0xE3, 0x00, 0x00, 0x00};
 
 
 uint8_t * ddcRequest; /* cached EDID */
@@ -80,7 +82,9 @@ static void cmd_proxy (BaseSequentialStream *chp, int argc, char *argv[])
   uint8_t data; /* captured Byte by Proxy */
   uint8_t retryEDIDread = 3;
   uint8_t firstTime = 1;
+  uint8_t firstCI = 1;
   uint8_t ack;
+  uint8_t ddcci_request_length;
 
 
 
@@ -115,7 +119,87 @@ static void cmd_proxy (BaseSequentialStream *chp, int argc, char *argv[])
         break;
 
       case MASTER_DDCCI_REQUEST:
+        data = BBI2C_Get_Byte (&i2cdev01);
+        if (data != MASTER_DDCCI_SOURCE_ADDRESS) break; /* break at wrong byte */
+        ddcci_request_length = BBI2C_Get_Byte (&i2cdev01); /* read length of the request */
+        ddcRequest = ddcci_read_master (&i2cdev01, ddcci_request_length); /* Read request from master */
+        data = BBI2C_Get_Byte (&i2cdev01);
+        chprintf(chp, "After collection ,read %02x \r\n", data);
+        switch (ddcRequest[3])
+        {
+          case MASTER_DDCCI_CAPABILITY_REQUEST:
+
+            if(ddcRequest[1] == 0xFF) /* invalid request */
+            {
+              chprintf (chp, "got invalid data for ddc/ci\r\n");
+              break;
+            }
+
+            if(firstCI)
+            {
+              if(data == MASTER_DDCCI_ANSWER_REQUEST)
+              {
+                signed int returncode;
+                returncode = ddcci_write_master (dummyCap, 6, 1);
+                if (returncode < 0) chprintf(chp, "no ack on bytes\r\n");
+                else if (returncode > 0) chprintf(chp, "ack on checksum\r\n");
+                else chprintf(chp, "transmission complete\r\n");
+              }
+              firstCI = 0;
+
+              /* First, gather information from slave about ddc/ci capabilities */
+              capRequest[4] = ddcRequest [4];
+              capRequest[5] = ddcRequest [5];
+              uint8_t retrycap = 5;
+              if(ddcci_write_slave (capRequest, 6) < 0)
+              {
+                  chprintf(chp, "ddcciwrite failed\r\n");
+                  break;
+              }
+              else
+              {
+                chprintf(chp, "ddcciwrite succeeded\r\n");
+                if(ddcci_read_slave(capAnswer) < 0)
+                {
+                  chprintf(chp, "failed reading ddc/ci, retrying\r\n");
+                  while(retrycap)
+                  {
+                    if(ddcci_write_slave (capRequest, 6) == 0)
+                    {
+                      if(ddcci_read_slave(capAnswer) < 0)
+                      {
+                        chprintf(chp, "failed reading ddc/ci, retrying\r\n");
+                      }
+                      else break;
+                    }
+                    retrycap--;
+                  }
+                }
+              }
+            }
+            /* Now, send this information to the host */
+            uint8_t messageLength = capAnswer[1] & 0x7F;
+            data = BBI2C_Get_Byte (&i2cdev01);
+            chprintf(chp, "After collection ,read %02x \r\n", data);
+            if(data == MASTER_DDCCI_ANSWER_REQUEST)
+            {
+              signed int returncode;
+              returncode = ddcci_write_master (capAnswer, messageLength + 3, 0);
+              if (returncode < 0) chprintf(chp, "no ack on bytes\r\n");
+              else if (returncode > 0) chprintf(chp, "ack on checksum\r\n");
+              else
+              {
+                chprintf(chp, "transmission complete\r\n");
+                firstCI = 1;
+              }
+            }
+            break;
+
+          default:
+            break;
+        }
         break;
+
       default:
         break;
     }
