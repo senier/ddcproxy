@@ -171,40 +171,9 @@ uint8_t BBI2C_Get_Byte (BBI2C_t *dev)
     uint8_t result = 0;
     int count = 8;
 
-/* activate when debugging
-    typedef struct
-    {
-      BBI2C_State_t state;
-      BBI2C_Level_t sda;
-      BBI2C_Level_t scl;
-    } debug_t
-    BBI2C_State_t oldstate = 0;
-    debug_t transitions[15];
-    uint32_t tcounter = 0;
-*/
     for (;;)
     {
         BBI2C_Event_t event = BBI2C_Event (dev);
-
-/* For debugging purpose
-	if (tcounter < (sizeof(transitions)/sizeof(debug_t)))
-	{
-	  if(oldstate!=dev->state || dev->state!=BS_Wait_Start)
-    {
-	     transitions[tcounter].state = dev->state;
-       transitions[tcounter].sda = event.sda;
-	     transitions[tcounter].scl = event.scl;
-	     tcounter++;
-    }
-	} else {
-	     	for(tcounter = 0; tcounter < 15; tcounter++)
-		{
-			chprintf(&SDU1,"%d/%d/%d ", transitions[tcounter].state, transitions[tcounter].sda, transitions[tcounter].scl);
-		}
-     	tcounter = 0;
-   	}
-  oldstate = dev->state;
-*/
 
 	// Go to BS_Start whenever a start condition is encountered
         if (START_CONDITION (event))
