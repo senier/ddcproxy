@@ -76,7 +76,7 @@ int ddcci_write_master(uint8_t *stream, uint8_t len, uint8_t fakeChk)
 
   for(i = 0; i < len; i++)
   {
-    ack = BBI2C_Send_Byte_To_Master (&dev, stream[i]);
+    ack = BBI2C_Send_Byte_To_Master (&dev, stream[i], 0 , 0);
     if (ack == 0)
     {
       continue;
@@ -85,7 +85,7 @@ int ddcci_write_master(uint8_t *stream, uint8_t len, uint8_t fakeChk)
   }
   chk = checksum (0, stream, len);
   if(fakeChk) chk = 0x00;
-  ack = BBI2C_Send_Byte_To_Master (&dev, chk);
+  ack = BBI2C_Send_Byte_To_Master (&dev, chk, 0 , 0);
   if(ack == 1) return 0;
   else return 1;
 
@@ -273,7 +273,7 @@ int write_edid (BBI2C_t i2cdev01, uint8_t *edid)
 
   for (i = 0; i < EDID_LENGTH; i++)
   {
-    ack = BBI2C_Send_Byte_To_Master (&i2cdev01, edid[i]);
+    ack = BBI2C_Send_Byte_To_Master (&i2cdev01, edid[i], 0, 0);
       if (ack == 0) continue;
       else if (i == 127)
       {

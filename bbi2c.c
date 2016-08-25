@@ -99,6 +99,7 @@ int BBI2C_Init
     dev->last_scl = 1;
     dev->last_sda = 1;
     dev->state    = BS_Wait_Start;
+    dev->stretching = 0;
 
     switch (mode)
     {
@@ -351,12 +352,39 @@ void BBI2C_Recv_Byte (BBI2C_t *dev, uint8_t *result)
    	return;
 }
 
-int BBI2C_Send_Byte_To_Master (BBI2C_t *dev, uint8_t data)
+int BBI2C_Send_Byte_To_Master (BBI2C_t *dev, uint8_t data, uint8_t proxy, uint8_t length)
 {
     unsigned char ack_bit;
     int count = 8;
     dev->state = BS_Clock_Avail;
     uint8_t init = 1;
+    int sent = 1;
+    uint8_t edid_length = 1;
+    uint8_t read = 0;
+    uint8_t edid[128];
+    uint8_t counter = 0;
+
+    BBI2C_t masterdev;
+
+    if(proxy)
+    {
+      BBI2C_t masterdev;
+      BBI2C_Init (&masterdev, GPIOC, 4, GPIOC, 5, 50000, BBI2C_MODE_MASTER);
+      BBI2C_Reset_EEPROM (&masterdev);
+      BBI2C_Start (&masterdev);
+      uint8_t masterack;
+      uint8_t masterretry = 2;
+      edid_length = length;
+
+      masterack = BBI2C_Send_Byte (&masterdev, 0xA1);
+      while (!masterack && masterretry)
+      {
+        chprintf(&SDU1, "nack on a1\r\n");
+        masterack = BBI2C_Send_Byte (&masterdev, 0xA1);
+        masterretry--;
+      }
+      chprintf(&SDU1, "slave acked on a1\r\n");
+    }
 
     for (;;)
     {
@@ -374,48 +402,141 @@ int BBI2C_Send_Byte_To_Master (BBI2C_t *dev, uint8_t data)
 
        switch (dev->state)
        {
-              case BS_Clock_Avail:
-                if (SCL_FALLING (event) || init == 1)
+          case BS_Clock_Avail:
+            if (SCL_FALLING (event) || init == 1)
+            {
+                if (proxy && edid_length && !read)
                 {
-                    init = 0;
-      		          if (count)
+                  dev->stretching = 1;
+                  Drive_SCL (dev, 0);
+
+                  BBI2C_Recv_Byte (&masterdev, &data);
+                  if(edid_length == 1) BBI2C_NACK (&masterdev);
+                  else BBI2C_Ack (&masterdev);
+                  //edid[counter] = data;
+                //  counter++;
+
+                  chprintf(&SDU1, "Byte %02x ", data);
+                  edid_length--;
+                  count = 8;
+                  read = 1;
+                }
+                init = 0;
+  		          if (count)
+                {
+  			            if ((data & 0x80) == 0)
+      	   	        {
+         				 	      Drive_SDA (dev, 0);
+         		    	  }
+         		    	  else
+         		        {
+         		        		Drive_SDA (dev, 1);
+         		    	  }
+                    if (proxy && (dev->stretching == 1))
                     {
-      			            if ((data & 0x80) == 0)
-          	   	        {
-             				 	      Drive_SDA (dev, 0);
-             		    	  }
-             		    	  else
-             		        {
-             		        		Drive_SDA (dev, 1);
-             		    	  }
-              	        count--;
-                        dev->state = BS_Data;
-             		        data <<= 1;
-      		     		  }
-      		     		  else
-      		     		  {
-      					        dev->state = BS_Ack;
-      		     		  }
-                }
-                break;
-              case BS_Data:
-                if(SCL_RAISING (event))
+                      dev->stretching = 0;
+                      Drive_SCL (dev, 1);
+                    }
+          	        count--;
+                    dev->state = BS_Data;
+         		        data <<= 1;
+  		     	    }
+  		     		  else
+  		     		  {
+  					        dev->state = BS_Ack;
+                    read = 0;
+  		     		  }
+            }
+            break;
+          case BS_Data:
+            if(SCL_RAISING (event))
+            {
+              dev->state = BS_Clock_Avail;
+            }
+            break;
+          case BS_Ack:
+            if (SCL_RAISING (event))
+            {
+              ack_bit = Read_SDA (dev);
+              chprintf(&SDU1, "ACK %d ", ack_bit);
+              dev->state = BS_Clock_Avail;
+
+              if(!proxy) return ack_bit;
+              else if (edid_length == 0)
+              {
+          /*      for (int k = 0; k < 128; k++)
                 {
-                  dev->state = BS_Clock_Avail;
-                }
-                break;
-              case BS_Ack:
-                if (SCL_RAISING (event))
-                {
-                  ack_bit = Read_SDA (dev);
-                  dev->state = BS_Clock_Avail;
-                  return ack_bit;
-                }
-                break;
+                  chprintf(&SDU1, "%02x ", edid[k]);
+                } */
+                BBI2C_Stop (&masterdev);
+                return ack_bit;
+              }
+              else break;
+            }
+            break;
 
 
-          default:
-              break;
-        }
+      default:
+          break;
+    }
+  }
+}
+
+/*void BBI2C_Reset_EEPROM (BBI2C_t *dev)
+{
+  uint8_t data = 0xFF;
+  BBI2C_Start (dev);
+  Drive_SCL (dev, 0);
+
+  unsigned char i;
+  for (i = 0; i < 8; i++)
+  {
+      if ((data & 0x80) == 0)
+      {
+          Drive_SDA (dev, 0);
       }
+      else
+      {
+          Drive_SDA (dev, 1);
+      }
+
+      Delay_us (dev->delay_us);
+      Release_SCL (dev);
+      Delay_us (dev->delay_us);
+      Drive_SCL (dev, 0);
+      Delay_us (dev->delay_us);
+      data <<= 1;
+   }
+
+   Drive_SDA (dev, 1);
+   Delay_us (dev->delay_us);
+   Release_SCL (dev);
+
+   Delay_us (dev->delay_us);
+   Drive_SCL (dev, 0);
+   Delay_us (dev->delay_us);
+   Drive_SDA (dev, 0);
+   Release_SCL (dev);
+
+   BBI2C_Start (dev);
+   BBI2C_Stop (dev);
+} */
+
+void BBI2C_Reset_EEPROM (BBI2C_t *dev)
+{
+  BBI2C_Start (dev);
+  Drive_SCL (dev, 0);
+
+  unsigned char i;
+  for (i = 0; i < 9; i++)
+  {
+      Delay_us (dev->delay_us);
+      Release_SCL (dev);
+      Delay_us (dev->delay_us);
+      Drive_SCL (dev, 0);
+      Delay_us (dev->delay_us);
+   }
+
+   BBI2C_Start (dev);
+   BBI2C_Stop (dev);
 }

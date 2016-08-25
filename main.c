@@ -208,6 +208,28 @@ static void cmd_proxy (BaseSequentialStream *chp, int argc, char *argv[])
   }
 }
 
+static void cmd_test (BaseSequentialStream *chp, int argc, char *argv[])
+{
+  BBI2C_t i2cdev;
+  BBI2C_Init (&i2cdev, GPIOC, 10, GPIOC, 11, 50000, BBI2C_MODE_SLAVE);
+  uint8_t ack;
+  uint8_t data;
+
+  for (;;)
+  {
+    data = BBI2C_Get_Byte (&i2cdev);
+    switch (data) /* Actions depending on captured byte */
+    {
+      case MASTER_EDID_REQUEST:
+        ack = BBI2C_Send_Byte_To_Master (&i2cdev, 0, 1, 128);
+        chprintf(chp, "Das ist passiert: %d ", ack);
+        break;
+      default:
+        break;
+    }
+  }
+}
+
 static void cmd_sample (BaseSequentialStream *chp, int argc, char *argv[])
 {
     uint8_t data;
@@ -398,6 +420,7 @@ static const ShellCommand commands[] = {
   {"pintest", cmd_pintest},
   {"comm", cmd_ddcci},
   {"proxy", cmd_proxy},
+  {"test", cmd_test},
   {NULL, NULL}
 };
 

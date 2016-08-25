@@ -74,6 +74,7 @@ typedef struct
     int last_scl;
     int last_sda;
     BBI2C_State_t state;
+    int stretching;
 } BBI2C_t;
 
 int BBI2C_Init
@@ -93,7 +94,8 @@ void BBI2C_NACK (BBI2C_t *dev);
 
 int BBI2C_Send_Byte (BBI2C_t *dev, uint8_t data);
 void BBI2C_Recv_Byte (BBI2C_t *dev, uint8_t *data);
-int BBI2C_Send_Byte_To_Master (BBI2C_t *dev, uint8_t data);
+int BBI2C_Send_Byte_To_Master (BBI2C_t *dev, uint8_t data, uint8_t proxy, uint8_t len);
+void BBI2C_Reset_EEPROM (BBI2C_t *dev);
 
 uint8_t BBI2C_Get_Byte (BBI2C_t *dev);
 
