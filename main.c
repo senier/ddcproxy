@@ -87,8 +87,6 @@ static void cmd_proxy (BaseSequentialStream *chp, int argc, char *argv[])
   uint8_t ack;
   uint8_t ddcci_request_length;
 
-
-
   //Slave Device for Host - doesn't need Start afterwards
   BBI2C_Init (&i2cdev01, GPIOC, 10, GPIOC, 11, 50000, BBI2C_MODE_SLAVE);
 
@@ -104,6 +102,7 @@ static void cmd_proxy (BaseSequentialStream *chp, int argc, char *argv[])
           ack = write_edid (i2cdev01, dummyEDID);
           firstTime--;
           savedEDID = read_edid(); /* cache valid edid */
+          savedEDID = edid_monitor_string_faker (savedEDID);
         }
 
         if(write_edid (i2cdev01, savedEDID) != 0)
