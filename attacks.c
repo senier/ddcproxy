@@ -20,7 +20,6 @@
 #include "bbi2c.h"
 #include "debug.h"
 #include "ddcci.h"
-#include "stdlib.h"
 
 #include "shell.h"
 #include "chprintf.h"
@@ -31,6 +30,8 @@ uint8_t edidstring[18] =
 
 #define EDID_LENGTH 128
 #define RAND_MAX 255
+
+int rand(void);
 
 uint8_t * edid_monitor_string_faker (uint8_t *edid)
 {
@@ -110,7 +111,7 @@ uint8_t * edid_fuzzer_unary (uint8_t *savedEDID)
   return edid;
 }
 
-uint8_t * edid_fuzzer_complete ()
+uint8_t * edid_fuzzer_complete (void)
 {
   static uint8_t edid[128];
   uint8_t value, i;

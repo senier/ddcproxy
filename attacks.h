@@ -20,5 +20,6 @@
 uint8_t * edid_monitor_string_faker (uint8_t *edid);
 uint8_t * edid_fuzzer_unary (uint8_t *savedEDID);
 uint8_t * edid_fuzzer_complete (void);
+uint8_t * edid_fuzzer_unary (uint8_t *savedEDID);
 
 #endif
