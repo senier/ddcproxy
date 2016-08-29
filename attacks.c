@@ -20,6 +20,7 @@
 #include "bbi2c.h"
 #include "debug.h"
 #include "ddcci.h"
+#include "stdlib.h"
 
 #include "shell.h"
 #include "chprintf.h"
@@ -28,7 +29,8 @@ uint8_t edidstring[18] =
 {0x6F, 0x77, 0x6E, 0x65, 0x64,
 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20};
 
-#define EDID_LENGTH 128;
+#define EDID_LENGTH 128
+#define RAND_MAX 255
 
 uint8_t * edid_monitor_string_faker (uint8_t *edid)
 {
@@ -80,4 +82,55 @@ uint8_t * edid_monitor_string_faker (uint8_t *edid)
   }
   chprintf(&SDU1, "\r\n");
   return newEdid;
+}
+
+uint8_t * edid_fuzzer_unary (uint8_t *savedEDID)
+{
+  static uint8_t edid[128];
+  uint8_t element, value, i;
+  uint32_t sum = 0;
+  uint8_t checksum = 0;
+
+  element = rand() % 127;
+  value = rand() % 256;
+
+  savedEDID[element] = value;
+
+  /* calculate checksum */
+  for(i = 0; i < 127; i++)
+  {
+    sum += edid[i];
+  }
+  checksum = 256 - (sum % 256);
+  edid[127] = checksum;
+  sum = 0;
+
+  chprintf(&SDU1, "Changed Byte Number %d to %02x", element, value);
+
+  return edid;
+}
+
+uint8_t * edid_fuzzer_complete ()
+{
+  static uint8_t edid[128];
+  uint8_t value, i;
+  uint32_t sum = 0;
+  uint8_t checksum = 0;
+
+  for(i = 0; i < 127; i++)
+  {
+    value = rand() % 256;
+    edid[i] = value;
+  }
+
+  /* calculate checksum */
+  for(i = 0; i < 127; i++)
+  {
+    sum += edid[i];
+  }
+  checksum = 256 - (sum % 256);
+  edid[127] = checksum;
+  sum = 0;
+
+  return edid;
 }

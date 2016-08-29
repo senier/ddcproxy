@@ -81,13 +81,12 @@ static void cmd_proxy (BaseSequentialStream *chp, int argc, char *argv[])
   DEBUG_INIT (chp);
   BBI2C_t i2cdev01; /* Slave Mode for PC */
   uint8_t data; /* captured Byte by Proxy */
-  uint8_t retryEDIDread = 3;
   uint8_t firstTime = 1;
   uint8_t firstCI = 1;
   uint8_t ack;
   uint8_t ddcci_request_length;
 
-  //Slave Device for Host - doesn't need Start afterwards
+  //Slave Device for Host - doe sn't need Start afterwards
   BBI2C_Init (&i2cdev01, GPIOC, 10, GPIOC, 11, 50000, BBI2C_MODE_SLAVE);
 
   for(;;) /* No STOP - need to listen continuously */
@@ -392,12 +391,12 @@ static void cmd_ddcci (BaseSequentialStream *chp, int argc, char *argv[])
 }
 
 static const ShellCommand commands[] = {
-  {"ddc", cmd_ddc},
-  {"sample", cmd_sample},
-  {"edid", cmd_edid},
-  {"pintest", cmd_pintest},
-  {"comm", cmd_ddcci},
   {"proxy", cmd_proxy},
+  {"sample", cmd_sample},
+  {"pintest", cmd_pintest},
+  {"edid", cmd_edid},
+  {"ddc", cmd_ddc},
+  {"comm", cmd_ddcci},
   {NULL, NULL}
 };
 

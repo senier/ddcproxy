@@ -68,6 +68,7 @@ int ddcci_write_slave(uint8_t *stream, uint8_t len)
     return 0;
 }
 
+/* fakeChk is set to 1 for the first transmission to have more time */
 int ddcci_write_master(uint8_t *stream, uint8_t len, uint8_t fakeChk)
 {
   uint8_t i, ack, chk;
