@@ -379,6 +379,10 @@ void BBI2C_Recv_Byte (BBI2C_t *dev, uint8_t *result)
         Drive_SCL (dev, 0);
         Delay_us (dev->delay_us);
     }
+    if(i<8)
+    {
+      chprintf(&SDU1, "Receiving byte failed!");
+    }
    	return;
 }
 
