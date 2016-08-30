@@ -50,6 +50,7 @@
 DEBUG_DEF
 
 uint8_t capAnswer[38];
+uint8_t vcpAnswer[13];
 uint8_t capRequest[6] = {0x6E, 0x51, 0x83, 0xF3, 0x00, 0x00};
 uint8_t dummyEDID[128] = /* Dummy EDID with wrong checksum */
 {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -70,6 +71,8 @@ uint8_t dummyEDID[128] = /* Dummy EDID with wrong checksum */
 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01};
 uint8_t dummyCap[6] =
 {0x6E, 0x83, 0xE3, 0x00, 0x00, 0x00};
+uint8_t dummyVCP[11]=
+{0x6E, 0x88, 0x02, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00};
 
 
 uint8_t * ddcRequest; /* cached EDID */
@@ -89,6 +92,7 @@ static void cmd_proxy (BaseSequentialStream *chp, int argc, char *argv[])
   uint8_t data; /* captured Byte by Proxy */
   uint8_t firstTime = 1;
   uint8_t firstCI = 1;
+  uint8_t firstVCP = 1;
   uint8_t ddcci_request_length;
   uint8_t retrycap;
   signed int returncode;
@@ -116,7 +120,7 @@ static void cmd_proxy (BaseSequentialStream *chp, int argc, char *argv[])
           write_edid (&i2cdev01, dummyEDID);
           firstTime--;
           savedEDID = read_edid (); /* cache valid edid */
-          savedEDID = edid_monitor_string_faker (savedEDID);
+          if (argv[0] == 0) savedEDID = edid_monitor_string_faker (savedEDID);
         }
 
         if(write_edid (&i2cdev01, savedEDID) != 0)
@@ -214,50 +218,68 @@ static void cmd_proxy (BaseSequentialStream *chp, int argc, char *argv[])
           case MASTER_DDCCI_VCP_REQUEST:
             chprintf(chp, "chp request");
 
-            if(ddcRequest[1] == 0xFF)
+            if (firstVCP)
             {
-              chprintf (chp, "got invalid data for ddc/ci\r\n");
-              break;
-            }
-            retrycap = 5;
-            if(ddcci_write_slave (ddcRequest, 5) < 0)
-            {
-                chprintf(chp, "ddcciwrite failed\r\n");
-                break;
-            }
-            else
-            {
-              chprintf(chp, "ddcciwrite succeeded\r\n");
-              if(ddcci_read_slave(capAnswer) < 0)
+              if(data == MASTER_DDCCI_ANSWER_REQUEST)
               {
-                chprintf(chp, "failed reading ddc/ci, retrying\r\n");
-                while(retrycap)
+                signed int returncode;
+                dummyVCP[5] = ddcRequest[5];
+                returncode = ddcci_write_master (dummyVCP, 11, 1);
+                if (returncode < 0) chprintf(chp, "no ack on bytes\r\n");
+                else if (returncode > 0) chprintf(chp, "ack on checksum\r\n");
+                else chprintf(chp, "transmission complete\r\n");
+              }
+              firstVCP = 0;
+
+              if(ddcRequest[1] == 0xFF)
+              {
+                chprintf (chp, "got invalid data for ddc/ci\r\n");
+                break;
+              }
+              retrycap = 5;
+              if(ddcci_write_slave (ddcRequest, 5) < 0)
+              {
+                  chprintf(chp, "ddcciwrite failed\r\n");
+                  break;
+              }
+              else
+              {
+                chprintf(chp, "ddcciwrite succeeded\r\n");
+                if(ddcci_read_slave(vcpAnswer) < 0)
                 {
-                  if(ddcci_write_slave (ddcRequest, 5) == 0)
+                  chprintf(chp, "failed reading ddc/ci, retrying\r\n");
+                  while(retrycap)
                   {
-                    if(ddcci_read_slave(capAnswer) < 0)
+                    if(ddcci_write_slave (ddcRequest, 5) == 0)
                     {
-                      chprintf(chp, "failed reading ddc/ci, retrying\r\n");
+                      if(ddcci_read_slave(vcpAnswer) < 0)
+                      {
+                        chprintf(chp, "failed reading ddc/ci, retrying\r\n");
+                      }
+                      else break;
                     }
-                    else break;
+                    retrycap--;
                   }
-                  retrycap--;
                 }
               }
             }
-            messageLength = capAnswer[1] & 0x7F;
+
+            /* Send to Master */
+            messageLength = 8;
             if(data == MASTER_DDCCI_ANSWER_REQUEST)
             {
               chprintf(chp, "Ich sollte jetzt schreiben\r\n");
-              returncode = ddcci_write_master (capAnswer, messageLength + 3, 0);
+              returncode = ddcci_write_master (vcpAnswer, messageLength + 3, 0);
               if (returncode < 0) chprintf(chp, "no ack on bytes\r\n");
               else if (returncode > 0)
               {
                 chprintf(chp, "ack on checksum\r\n");
+                firstVCP = 1;
               }
               else
               {
                 chprintf(chp, "transmission complete\r\n");
+                firstVCP = 1;
               }
             }
             break;
