@@ -40,6 +40,7 @@
 #define MASTER_DDCCI_ANSWER_REQUEST 0x6F
 #define MASTER_DDCCI_SOURCE_ADDRESS 0x51
 #define MASTER_DDCCI_CAPABILITY_REQUEST 0xF3
+#define MASTER_DDCCI_VCP_REQUEST 0x01
 
 DEBUG_DEF
 
@@ -78,13 +79,15 @@ void Drive_SCL (BBI2C_t *dev, int scl);
 
 static void cmd_proxy (BaseSequentialStream *chp, int argc, char *argv[])
 {
-  DEBUG_INIT (chp);
+//  DEBUG_INIT (chp);
   BBI2C_t i2cdev01; /* Slave Mode for PC */
   uint8_t data; /* captured Byte by Proxy */
   uint8_t firstTime = 1;
   uint8_t firstCI = 1;
   uint8_t ack;
   uint8_t ddcci_request_length;
+  signed int returncode;
+  uint8_t retrycap;
 
   //Slave Device for Host - doe sn't need Start afterwards
   BBI2C_Init (&i2cdev01, GPIOC, 10, GPIOC, 11, 50000, BBI2C_MODE_SLAVE);
@@ -100,7 +103,7 @@ static void cmd_proxy (BaseSequentialStream *chp, int argc, char *argv[])
         {
           ack = write_edid (i2cdev01, dummyEDID);
           firstTime--;
-          savedEDID = read_edid(); /* cache valid edid */
+          savedEDID = read_edid (); /* cache valid edid */
           savedEDID = edid_monitor_string_faker (savedEDID);
         }
 
@@ -195,7 +198,58 @@ static void cmd_proxy (BaseSequentialStream *chp, int argc, char *argv[])
               }
             }
             break;
+/*
+          case MASTER_DDCCI_VCP_REQUEST:
+            chprintf(chp, "chp request");
 
+            if(ddcRequest[1] == 0xFF)
+            {
+              chprintf (chp, "got invalid data for ddc/ci\r\n");
+              break;
+            }
+            retrycap = 5;
+            if(ddcci_write_slave (ddcRequest, 5) < 0)
+            {
+                chprintf(chp, "ddcciwrite failed\r\n");
+                break;
+            }
+            else
+            {
+              chprintf(chp, "ddcciwrite succeeded\r\n");
+              if(ddcci_read_slave(capAnswer) < 0)
+              {
+                chprintf(chp, "failed reading ddc/ci, retrying\r\n");
+                while(retrycap)
+                {
+                  if(ddcci_write_slave (ddcRequest, 5) == 0)
+                  {
+                    if(ddcci_read_slave(capAnswer) < 0)
+                    {
+                      chprintf(chp, "failed reading ddc/ci, retrying\r\n");
+                    }
+                    else break;
+                  }
+                  retrycap--;
+                }
+              }
+            }
+            messageLength = capAnswer[1] & 0x7F;
+            if(data == MASTER_DDCCI_ANSWER_REQUEST)
+            {
+              chprintf(chp, "Ich sollte jetzt schreiben\r\n");
+              returncode = ddcci_write_master (capAnswer, messageLength + 3, 0);
+              if (returncode < 0) chprintf(chp, "no ack on bytes\r\n");
+              else if (returncode > 0)
+              {
+                chprintf(chp, "ack on checksum\r\n");
+              }
+              else
+              {
+                chprintf(chp, "transmission complete\r\n");
+              }
+            }
+            break;
+*/
           default:
             break;
         }
