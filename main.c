@@ -40,9 +40,12 @@
 #define MASTER_DDCCI_ANSWER_REQUEST 0x6F
 #define MASTER_DDCCI_SOURCE_ADDRESS 0x51
 #define MASTER_DDCCI_CAPABILITY_REQUEST 0xF3
+/*
 #define MASTER_DDCCI_VCP_REQUEST 0x01
 #define MASTER_SET_CTRL_ADDRESS 0x03
 #define MASTER_SAVE_SETTINGS 0x0C
+*/
+
 
 DEBUG_DEF
 
@@ -94,6 +97,15 @@ static void cmd_proxy (BaseSequentialStream *chp, int argc, char *argv[])
 
   for(;;) /* No STOP - need to listen continuously */
   {
+  /*
+    if (argc != 1)
+    {
+        chprintf (chp, "Argument error.\r\n");
+        chprintf (chp, "1: Original EDID\r\n");
+        chprintf (chp, "0: Fake EDID\r\n");
+        return;
+    }
+    */
     data = BBI2C_Get_Byte (&i2cdev01);
     switch (data) /* Actions depending on captured byte */
     {
@@ -320,6 +332,7 @@ static void cmd_proxy (BaseSequentialStream *chp, int argc, char *argv[])
             }
             break;
 */
+
           default:
             break;
         }
@@ -330,6 +343,51 @@ static void cmd_proxy (BaseSequentialStream *chp, int argc, char *argv[])
     }
   }
 }
+
+/*
+static void cmd_fuzzer (BaseSequentialStream *chp, int argc, char *argv[])
+{
+
+  BBI2C_t i2cdev01;
+  uint8_t data;
+  uint8_t init = 1;
+  //Slave Device for Host - doe sn't need Start afterwards
+  BBI2C_Init (&i2cdev01, GPIOC, 10, GPIOC, 11, 50000, BBI2C_MODE_SLAVE);
+
+  if (argc != 1)
+  {
+      chprintf (chp, "Argument error.\r\n");
+      chprintf (chp, "1: Fuzz one field\r\n");
+      chprintf (chp, "0: Fuzz complete EDID\r\n");
+      return;
+  }
+
+  for(;;)
+  {
+    data = BBI2C_Get_Byte (&i2cdev01);
+    if (data == 0xA1)
+    {
+      if (init)
+      {
+        write_edid (i2cdev01, dummyEDID);
+        savedEDID = read_edid ();
+        if(argv[0]==1) savedEDID = edid_fuzzer_unary (savedEDID);
+        else savedEDID = edid_fuzzer_complete ();
+        init = 0;
+      }
+
+      if(write_edid (i2cdev01, savedEDID) != 0)
+      {
+        chprintf(chp, "Writing EDID to Host failed\r\n");
+      }
+      else //EDID successfully sent to host
+      {
+        chprintf(chp, "Sent EDID to Host\r\n");
+      }
+
+    }
+  }
+} */
 
 static void cmd_sample (BaseSequentialStream *chp, int argc, char *argv[])
 {
@@ -516,6 +574,7 @@ static void cmd_ddcci (BaseSequentialStream *chp, int argc, char *argv[])
 
 static const ShellCommand commands[] = {
   {"proxy", cmd_proxy},
+//  {"fuzzer", cmd_fuzzer},
   {"sample", cmd_sample},
   {"pintest", cmd_pintest},
   {"edid", cmd_edid},
