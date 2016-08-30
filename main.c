@@ -41,6 +41,8 @@
 #define MASTER_DDCCI_SOURCE_ADDRESS 0x51
 #define MASTER_DDCCI_CAPABILITY_REQUEST 0xF3
 #define MASTER_DDCCI_VCP_REQUEST 0x01
+#define MASTER_SET_CTRL_ADDRESS 0x03
+#define MASTER_SAVE_SETTINGS 0x0C
 
 DEBUG_DEF
 
@@ -84,9 +86,7 @@ static void cmd_proxy (BaseSequentialStream *chp, int argc, char *argv[])
   uint8_t data; /* captured Byte by Proxy */
   uint8_t firstTime = 1;
   uint8_t firstCI = 1;
-  uint8_t ack;
   uint8_t ddcci_request_length;
-  signed int returncode;
   uint8_t retrycap;
 
   //Slave Device for Host - doe sn't need Start afterwards
@@ -101,7 +101,7 @@ static void cmd_proxy (BaseSequentialStream *chp, int argc, char *argv[])
 
         if(firstTime) /* to have enough time to get edid, send invalid edid */
         {
-          ack = write_edid (i2cdev01, dummyEDID);
+          write_edid (i2cdev01, dummyEDID);
           firstTime--;
           savedEDID = read_edid (); /* cache valid edid */
           savedEDID = edid_monitor_string_faker (savedEDID);
@@ -246,6 +246,76 @@ static void cmd_proxy (BaseSequentialStream *chp, int argc, char *argv[])
               else
               {
                 chprintf(chp, "transmission complete\r\n");
+              }
+            }
+            break;
+*/
+/*
+          case MASTER_SET_CTRL_ADDRESS:
+            if(ddcRequest[1] == 0xFF)
+            {
+              chprintf (chp, "got invalid data for ddc/ci\r\n");
+              break;
+            }
+            retrycap = 5;
+            if(ddcci_write_slave (ddcRequest, 7) < 0)
+            {
+                chprintf(chp, "ddcciwrite failed\r\n");
+                break;
+            }
+            else
+            {
+              chprintf(chp, "ddcciwrite succeeded\r\n");
+              if(ddcci_read_slave(capAnswer) < 0)
+              {
+                chprintf(chp, "failed reading ddc/ci, retrying\r\n");
+                while(retrycap)
+                {
+                  if(ddcci_write_slave (ddcRequest, 7) == 0)
+                  {
+                    if(ddcci_read_slave(capAnswer) < 0)
+                    {
+                      chprintf(chp, "failed reading ddc/ci, retrying\r\n");
+                    }
+                    else break;
+                  }
+                  retrycap--;
+                }
+              }
+            }
+            break;
+*/
+/*
+          case MASTER_SAVE_SETTINGS:
+            if(ddcRequest[1] == 0xFF)
+            {
+              chprintf (chp, "got invalid data for ddc/ci\r\n");
+              break;
+            }
+            retrycap = 5;
+            if(ddcci_write_slave (ddcRequest, 4) < 0)
+            {
+                chprintf(chp, "ddcciwrite failed\r\n");
+                break;
+            }
+            else
+            {
+              chprintf(chp, "ddcciwrite succeeded\r\n");
+              if(ddcci_read_slave(capAnswer) < 0)
+              {
+                chprintf(chp, "failed reading ddc/ci, retrying\r\n");
+                while(retrycap)
+                {
+                  if(ddcci_write_slave (ddcRequest, 4) == 0)
+                  {
+                    if(ddcci_read_slave(capAnswer) < 0)
+                    {
+                      chprintf(chp, "failed reading ddc/ci, retrying\r\n");
+                    }
+                    else break;
+                  }
+                  retrycap--;
+                }
               }
             }
             break;
