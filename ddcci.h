@@ -21,7 +21,7 @@ int ddcci_read_slave (uint8_t *result);
 int ddcci_write_master (uint8_t *stream, uint8_t len, uint8_t fakeChk);
 uint8_t * ddcci_read_master (BBI2C_t *dev, uint8_t length);
 uint8_t * read_edid (void);
-int write_edid (BBI2C_t dev, uint8_t *edid);
+int write_edid (BBI2C_t *dev, uint8_t *edid);
 uint8_t checksum (uint8_t send, uint8_t stream[], uint8_t len);
 uint8_t checkNullMessage (uint8_t val);
 

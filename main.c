@@ -40,11 +40,11 @@
 #define MASTER_DDCCI_ANSWER_REQUEST 0x6F
 #define MASTER_DDCCI_SOURCE_ADDRESS 0x51
 #define MASTER_DDCCI_CAPABILITY_REQUEST 0xF3
-/*
+
 #define MASTER_DDCCI_VCP_REQUEST 0x01
 #define MASTER_SET_CTRL_ADDRESS 0x03
 #define MASTER_SAVE_SETTINGS 0x0C
-*/
+
 
 
 DEBUG_DEF
@@ -91,13 +91,14 @@ static void cmd_proxy (BaseSequentialStream *chp, int argc, char *argv[])
   uint8_t firstCI = 1;
   uint8_t ddcci_request_length;
   uint8_t retrycap;
+  signed int returncode;
 
   //Slave Device for Host - doe sn't need Start afterwards
   BBI2C_Init (&i2cdev01, GPIOC, 10, GPIOC, 11, 50000, BBI2C_MODE_SLAVE);
 
   for(;;) /* No STOP - need to listen continuously */
   {
-  /*
+
     if (argc != 1)
     {
         chprintf (chp, "Argument error.\r\n");
@@ -105,7 +106,6 @@ static void cmd_proxy (BaseSequentialStream *chp, int argc, char *argv[])
         chprintf (chp, "0: Fake EDID\r\n");
         return;
     }
-    */
     data = BBI2C_Get_Byte (&i2cdev01);
     switch (data) /* Actions depending on captured byte */
     {
@@ -113,13 +113,13 @@ static void cmd_proxy (BaseSequentialStream *chp, int argc, char *argv[])
 
         if(firstTime) /* to have enough time to get edid, send invalid edid */
         {
-          write_edid (i2cdev01, dummyEDID);
+          write_edid (&i2cdev01, dummyEDID);
           firstTime--;
           savedEDID = read_edid (); /* cache valid edid */
           savedEDID = edid_monitor_string_faker (savedEDID);
         }
 
-        if(write_edid (i2cdev01, savedEDID) != 0)
+        if(write_edid (&i2cdev01, savedEDID) != 0)
         {
           chprintf(chp, "Writing EDID to Host failed\r\n");
         }
@@ -210,7 +210,7 @@ static void cmd_proxy (BaseSequentialStream *chp, int argc, char *argv[])
               }
             }
             break;
-/*
+
           case MASTER_DDCCI_VCP_REQUEST:
             chprintf(chp, "chp request");
 
@@ -261,8 +261,7 @@ static void cmd_proxy (BaseSequentialStream *chp, int argc, char *argv[])
               }
             }
             break;
-*/
-/*
+
           case MASTER_SET_CTRL_ADDRESS:
             if(ddcRequest[1] == 0xFF)
             {
@@ -296,8 +295,7 @@ static void cmd_proxy (BaseSequentialStream *chp, int argc, char *argv[])
               }
             }
             break;
-*/
-/*
+
           case MASTER_SAVE_SETTINGS:
             if(ddcRequest[1] == 0xFF)
             {
@@ -331,7 +329,7 @@ static void cmd_proxy (BaseSequentialStream *chp, int argc, char *argv[])
               }
             }
             break;
-*/
+
 
           default:
             break;
@@ -344,7 +342,7 @@ static void cmd_proxy (BaseSequentialStream *chp, int argc, char *argv[])
   }
 }
 
-/*
+
 static void cmd_fuzzer (BaseSequentialStream *chp, int argc, char *argv[])
 {
 
@@ -369,14 +367,14 @@ static void cmd_fuzzer (BaseSequentialStream *chp, int argc, char *argv[])
     {
       if (init)
       {
-        write_edid (i2cdev01, dummyEDID);
+        write_edid (&i2cdev01, dummyEDID);
         savedEDID = read_edid ();
         if(argv[0]==1) savedEDID = edid_fuzzer_unary (savedEDID);
         else savedEDID = edid_fuzzer_complete ();
         init = 0;
       }
 
-      if(write_edid (i2cdev01, savedEDID) != 0)
+      if(write_edid (&i2cdev01, savedEDID) != 0)
       {
         chprintf(chp, "Writing EDID to Host failed\r\n");
       }
@@ -387,7 +385,7 @@ static void cmd_fuzzer (BaseSequentialStream *chp, int argc, char *argv[])
 
     }
   }
-} */
+}
 
 static void cmd_sample (BaseSequentialStream *chp, int argc, char *argv[])
 {
@@ -574,7 +572,7 @@ static void cmd_ddcci (BaseSequentialStream *chp, int argc, char *argv[])
 
 static const ShellCommand commands[] = {
   {"proxy", cmd_proxy},
-//  {"fuzzer", cmd_fuzzer},
+  {"fuzzer", cmd_fuzzer},
   {"sample", cmd_sample},
   {"pintest", cmd_pintest},
   {"edid", cmd_edid},

@@ -178,12 +178,12 @@ uint8_t * ddcci_read_master (BBI2C_t *dev, uint8_t len)
   }
 
   data = BBI2C_Get_Byte (dev);
-  chk = checksum (1, result, len+2);
+  chk = checksum (1, result, fragment_length+3);
   if(chk != data)
   {
      result[1]=0xFF;
   }
-  result[len+3] = chk;
+  result[fragment_length+3] = chk;
 
   return result;
 }
@@ -266,7 +266,7 @@ uint8_t * read_edid()
   return edid;
 }
 
-int write_edid (BBI2C_t i2cdev01, uint8_t *edid)
+int write_edid (BBI2C_t *i2cdev01, uint8_t *edid)
 {
   uint8_t i, ack;
 
@@ -274,7 +274,7 @@ int write_edid (BBI2C_t i2cdev01, uint8_t *edid)
 
   for (i = 0; i < EDID_LENGTH; i++)
   {
-    ack = BBI2C_Send_Byte_To_Master (&i2cdev01, edid[i]);
+    ack = BBI2C_Send_Byte_To_Master (i2cdev01, edid[i]);
       if (ack == 0) continue;
       else if (i == 127)
       {
