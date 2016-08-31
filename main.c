@@ -296,26 +296,6 @@ static void cmd_proxy (BaseSequentialStream *chp, int argc, char *argv[])
                 chprintf(chp, "ddcciwrite failed\r\n");
                 break;
             }
-            else
-            {
-              chprintf(chp, "ddcciwrite succeeded\r\n");
-              if(ddcci_read_slave(capAnswer) < 0)
-              {
-                chprintf(chp, "failed reading ddc/ci, retrying\r\n");
-                while(retrycap)
-                {
-                  if(ddcci_write_slave (ddcRequest, 7) == 0)
-                  {
-                    if(ddcci_read_slave(capAnswer) < 0)
-                    {
-                      chprintf(chp, "failed reading ddc/ci, retrying\r\n");
-                    }
-                    else break;
-                  }
-                  retrycap--;
-                }
-              }
-            }
             break;
 
           case MASTER_SAVE_SETTINGS:
@@ -329,26 +309,6 @@ static void cmd_proxy (BaseSequentialStream *chp, int argc, char *argv[])
             {
                 chprintf(chp, "ddcciwrite failed\r\n");
                 break;
-            }
-            else
-            {
-              chprintf(chp, "ddcciwrite succeeded\r\n");
-              if(ddcci_read_slave(capAnswer) < 0)
-              {
-                chprintf(chp, "failed reading ddc/ci, retrying\r\n");
-                while(retrycap)
-                {
-                  if(ddcci_write_slave (ddcRequest, 4) == 0)
-                  {
-                    if(ddcci_read_slave(capAnswer) < 0)
-                    {
-                      chprintf(chp, "failed reading ddc/ci, retrying\r\n");
-                    }
-                    else break;
-                  }
-                  retrycap--;
-                }
-              }
             }
             break;
 
