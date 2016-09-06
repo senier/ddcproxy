@@ -107,7 +107,7 @@ static void cmd_proxy (BaseSequentialStream *chp, int argc, char *argv[])
     {
         chprintf (chp, "Argument error.\r\n");
         chprintf (chp, "1: Original EDID\r\n");
-        chprintf (chp, "0: Fake EDID\r\n");
+        chprintf (chp, "2: Fake EDID\r\n");
         return;
     }
     data = BBI2C_Get_Byte (&i2cdev01);
@@ -120,7 +120,8 @@ static void cmd_proxy (BaseSequentialStream *chp, int argc, char *argv[])
           write_edid (&i2cdev01, dummyEDID);
           firstTime--;
           savedEDID = read_edid (); /* cache valid edid */
-          if (argv[0] == 0) savedEDID = edid_monitor_string_faker (savedEDID);
+          uint8_t module = atoi(argv[0]);
+          if (module == 2) savedEDID = edid_monitor_string_faker (savedEDID);
         }
 
         if(write_edid (&i2cdev01, savedEDID) != 0)
@@ -331,9 +332,12 @@ static void cmd_fuzzer (BaseSequentialStream *chp, int argc, char *argv[])
   BBI2C_t i2cdev01;
   uint8_t data;
   uint8_t init = 1;
+  uint8_t module;
   //Slave Device for Host - doe sn't need Start afterwards
   BBI2C_Init (&i2cdev01, GPIOC, 10, GPIOC, 11, 50000, BBI2C_MODE_SLAVE);
 
+  module = atoi(argv[0]);
+  
   if (argc != 1)
   {
       chprintf (chp, "Argument error.\r\n");
