@@ -32,6 +32,8 @@ uint8_t edidstring[18] = /* writing 'owned' as the display name string */
 #define RAND_MAX 255
 
 int rand(void);
+void randomSeed(unsigned int seed);
+long random(long max);
 
 uint8_t * edid_monitor_string_faker (uint8_t *edid)
 {
@@ -88,14 +90,26 @@ uint8_t * edid_monitor_string_faker (uint8_t *edid)
 uint8_t * edid_fuzzer_unary (uint8_t *savedEDID)
 {
   static uint8_t edid[128];
-  uint8_t element, value, i;
+  uint32_t element, value;
+  uint8_t i;
   uint32_t sum = 0;
   uint8_t checksum = 0;
 
-  element = rand() % 127;
-  value = rand() % 256;
+  element = (chVTGetSystemTime() % 127);
+  value = (chVTGetSystemTime() % 256);
 
-  savedEDID[element] = value;
+  chprintf(&SDU1, "Some random numbers\r\n");
+  chprintf(&SDU1, "%d %d \r\n", chVTGetSystemTime() % 127, chVTGetSystemTime() % 127);
+
+  /* Prevent to change the header */
+  while(element < 8) element = (chVTGetSystemTime() % 127);
+
+  for(uint8_t z = 0; z < 128; z++)
+  {
+    edid[z] = savedEDID [z];
+  }
+
+  edid[element] = value;
 
   /* calculate checksum */
   for(i = 0; i < 127; i++)
@@ -108,6 +122,13 @@ uint8_t * edid_fuzzer_unary (uint8_t *savedEDID)
 
   chprintf(&SDU1, "Changed Byte Number %d to %02x", element, value);
 
+  for(uint8_t l = 0; l < 128; l++)
+  {
+    chprintf(&SDU1, "%02x ", edid[l]);
+  }
+
+  chprintf(&SDU1, "\r\n");
+
   return edid;
 }
 
@@ -118,9 +139,18 @@ uint8_t * edid_fuzzer_complete (void)
   uint32_t sum = 0;
   uint8_t checksum = 0;
 
-  for(i = 0; i < 127; i++)
+  edid[0] = 0x00;
+  edid[1] = 0xFF;
+  edid[2] = 0xFF;
+  edid[3] = 0xFF;
+  edid[4] = 0xFF;
+  edid[5] = 0xFF;
+  edid[6] = 0xFF;
+  edid[7] = 0x00;
+
+  for(i = 8; i < 127; i++)
   {
-    value = rand() % 256;
+    value = (chVTGetSystemTime() / i) % 256;
     edid[i] = value;
   }
 
@@ -131,7 +161,13 @@ uint8_t * edid_fuzzer_complete (void)
   }
   checksum = 256 - (sum % 256);
   edid[127] = checksum;
+  edid[126] = 0x00;
   sum = 0;
+
+  for(uint8_t l = 0; l < 128; l++)
+  {
+    chprintf(&SDU1, "%02x ", edid[l]);
+  }
 
   return edid;
 }

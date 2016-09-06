@@ -337,7 +337,7 @@ static void cmd_fuzzer (BaseSequentialStream *chp, int argc, char *argv[])
   BBI2C_Init (&i2cdev01, GPIOC, 10, GPIOC, 11, 50000, BBI2C_MODE_SLAVE);
 
   module = atoi(argv[0]);
-  
+
   if (argc != 1)
   {
       chprintf (chp, "Argument error.\r\n");
@@ -355,7 +355,7 @@ static void cmd_fuzzer (BaseSequentialStream *chp, int argc, char *argv[])
       {
         write_edid (&i2cdev01, dummyEDID);
         savedEDID = read_edid ();
-        if(argv[0]==1) savedEDID = edid_fuzzer_unary (savedEDID);
+        if(module==1) savedEDID = edid_fuzzer_unary (savedEDID);
         else savedEDID = edid_fuzzer_complete ();
         init = 0;
       }
