@@ -154,6 +154,8 @@ uint8_t * edid_fuzzer_complete (void)
     edid[i] = value;
   }
 
+  edid[126] = 0x00;
+
   /* calculate checksum */
   for(i = 0; i < 127; i++)
   {
@@ -161,7 +163,6 @@ uint8_t * edid_fuzzer_complete (void)
   }
   checksum = 256 - (sum % 256);
   edid[127] = checksum;
-  edid[126] = 0x00;
   sum = 0;
 
   for(uint8_t l = 0; l < 128; l++)
