@@ -85,8 +85,16 @@ int ddcci_write_master(uint8_t *stream, uint8_t len, uint8_t fakeChk)
     else return -1;
   }
   chk = checksum (0, stream, len);
-  if(fakeChk) chk = 0x00;
-  ack = BBI2C_Send_Byte_To_Master (&dev, chk);
+
+  chprintf(&SDU1, "Sent to master:");
+  for(i = 0; i < len; i++)
+  {
+    chprintf(&SDU1, "%02x ", stream[i]);
+  }
+
+  //chprintf(&SDU1, "write: calculated chk: %02x \r\n", chk);
+  //if(fakeChk) chk = 0x00;
+  //ack = BBI2C_Send_Byte_To_Master (&dev, chk);
   if(ack == 1) return 0;
   else return 1;
 
