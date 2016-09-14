@@ -138,7 +138,7 @@ int ddcci_read_slave(uint8_t *result)
   else if (msg_length > 35)/* length only 3-35 as defined in vesa ddc/di doc */
   {
     chprintf(&SDU1, "invalid message length, got %02x \r\n", result[1]);
-    BBI2C_NACK (&dev);
+    BBI2C_ACK (&dev);
     BBI2C_Stop (&dev);
     return -1;
   }

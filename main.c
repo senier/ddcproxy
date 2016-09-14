@@ -226,7 +226,7 @@ static void cmd_proxy (BaseSequentialStream *chp, int argc, char *argv[])
                 signed int returncode;
                 dummyVCP[5] = ddcRequest[5];
                 returncode = ddcci_write_master (dummyVCP, 11, 1);
-                if (returncode < 0) chprintf(chp, "no ack on bytes\r\n");
+                if (returncode < 0) chprintf(chp, "no ack on dummy bytes\r\n");
                 else if (returncode > 0) chprintf(chp, "ack on checksum\r\n");
                 else chprintf(chp, "transmission complete\r\n");
               }
