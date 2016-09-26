@@ -38,8 +38,9 @@
 
 void BBI2C_Ack (BBI2C_t *dev);
 
-int ddcci_write_slave(uint8_t *stream, uint8_t len)
-{
+/* Writing a ddc/ci command to the slave */
+int ddcci_write_slave(uint8_t *stream, uint8_t len) /* stream = array with message, len = length of sent array */
+{ /* array typically beginning by 6E */
     uint8_t i, ack;
     uint8_t send = 1;
 
@@ -50,14 +51,14 @@ int ddcci_write_slave(uint8_t *stream, uint8_t len)
     for(i = 0; i < len; i++)
     {
       ack = BBI2C_Send_Byte (&dev, stream[i]);
-      if(!ack)
+      if(!ack) /* abort when a NACK was is encountered */
       {
         BBI2C_Stop (&dev);
         return -1;
       }
     }
 
-    ack = BBI2C_Send_Byte (&dev, checksum(send, stream, len));
+    ack = BBI2C_Send_Byte (&dev, checksum(send, stream, len)); /* send the checksum for the msg */
     if(!ack)
     {
       BBI2C_Stop (&dev);
@@ -69,7 +70,7 @@ int ddcci_write_slave(uint8_t *stream, uint8_t len)
 }
 
 /* fakeChk is set to 1 for the first transmission to have more time */
-int ddcci_write_master(uint8_t *stream, uint8_t len, uint8_t fakeChk)
+int ddcci_write_master(uint8_t *stream, uint8_t len, uint8_t fakeChk) /* len = length of whole array */
 {
   uint8_t i, ack, chk;
   BBI2C_t dev;
@@ -77,7 +78,7 @@ int ddcci_write_master(uint8_t *stream, uint8_t len, uint8_t fakeChk)
 
   for(i = 0; i < len; i++)
   {
-    ack = BBI2C_Send_Byte_To_Master (&dev, stream[i]);
+    ack = BBI2C_Send_Byte_To_Master (&dev, stream[i]); /* sending the ddc/ci string */
     if (ack == 0)
     {
       continue;
@@ -100,7 +101,8 @@ int ddcci_write_master(uint8_t *stream, uint8_t len, uint8_t fakeChk)
 
 }
 
-int ddcci_read_slave(uint8_t *result)
+/* reading the answer of the slave after a request */
+int ddcci_read_slave(uint8_t *result) /* writing into result array */
 {
 
   chThdSleepMilliseconds (40);
@@ -113,6 +115,7 @@ int ddcci_read_slave(uint8_t *result)
   uint8_t msg_length = 0;
   uint8_t chk;
 
+  /* start transmission by sending '6F' */
   ack = BBI2C_Send_Byte (&dev, DEFAULT_DDCCI_R_ADDR);
   if(!ack)
   {
@@ -127,7 +130,7 @@ int ddcci_read_slave(uint8_t *result)
 
   BBI2C_Recv_Byte (&dev, &result[1]);
   BBI2C_Ack (&dev);
-  msg_length = result[1] & 0x7F;
+  msg_length = result[1] & 0x7F; /* determining length of the answer, all but first bit */
   chThdSleepMicroseconds(5);
 
   if(checkNullMessage (result[1])) /* Null message */
@@ -145,7 +148,7 @@ int ddcci_read_slave(uint8_t *result)
   else /* Not a null message and valid fragment length */
   {
     chprintf(&SDU1, "length of ddc/ci message: %d \r\n", msg_length);
-    for(i = 0; i < msg_length; i++)
+    for(i = 0; i < msg_length; i++) /* receiving bytes 'msg_length' times */
     {
       BBI2C_Recv_Byte (&dev, &result[i+2]);
       BBI2C_Ack (&dev);
@@ -153,10 +156,11 @@ int ddcci_read_slave(uint8_t *result)
     }
   }
 
-  BBI2C_Recv_Byte (&dev, &result[msg_length+2]);
+  BBI2C_Recv_Byte (&dev, &result[msg_length+2]); /* CHK received separately, must be NACKED and stopped afterwards */
   BBI2C_NACK (&dev);
   BBI2C_Stop (&dev);
 
+  /* checking the checksum here */
   chk = checksum(0, result, (msg_length+1));
   if(chk != result[msg_length+2]) return -1;
   chprintf(&SDU1, "calculated chksum %02x\r\n", chk);
@@ -169,6 +173,7 @@ int ddcci_read_slave(uint8_t *result)
   return 0;
 }
 
+/* reading the master by using the received length len */
 uint8_t * ddcci_read_master (BBI2C_t *dev, uint8_t len)
 {
   uint8_t data, i, chk, fragment_length;
@@ -177,7 +182,7 @@ uint8_t * ddcci_read_master (BBI2C_t *dev, uint8_t len)
   result[1] = 0x51;
   result[2] = len;
 
-  fragment_length = len & 0x0F;
+  fragment_length = len & 0x0F; /* length are last four bytes */
 
   for(i = 0; i < fragment_length; i++)
   {
@@ -189,13 +194,14 @@ uint8_t * ddcci_read_master (BBI2C_t *dev, uint8_t len)
   chk = checksum (1, result, fragment_length+3);
   if(chk != data)
   {
-     result[1]=0xFF;
+     result[1]=0xFF; /* received invalid checksum */
   }
   result[fragment_length+3] = chk;
 
   return result;
 }
 
+/* reading the edid from the slave */
 uint8_t * read_edid()
 {
 
@@ -209,7 +215,7 @@ uint8_t * read_edid()
 
   do {
     BBI2C_Start (&dev);
-    ack = BBI2C_Send_Byte (&dev, DEFAULT_EDID_R_ADDR);
+    ack = BBI2C_Send_Byte (&dev, DEFAULT_EDID_R_ADDR); /* Addresses A1 to request EDID */
     chThdSleepMicroseconds(5);
     if(ack)
   	{
@@ -219,10 +225,11 @@ uint8_t * read_edid()
         if (k < 7) BBI2C_Ack (&dev);
         else if(k > 6 && edid[k-7]==0x00 && edid[k]==0x00 && edid[k-5]==0xFF && edid[k-4]==0xFF && edid[k-3]==0xFF
         && edid[k-2]==0xFF && edid[k-1]==0xFF && edid[k-6]==0xFF)
-        {
+        { /* to ensure that the EDID is in the right format, the header must be found
+              in order to store the subsequent bytes in the right order */
             chprintf(&SDU1, "found header!\r\n");
             BBI2C_NACK (&dev);
-            BBI2C_Stop (&dev);
+            BBI2C_Stop (&dev); /* transmission gets interrupted */
             edid[0] = 0x00;
             edid[7] = 0x00;
             edid[1] = 0xFF;
@@ -232,21 +239,21 @@ uint8_t * read_edid()
             edid[5] = 0xFF;
             edid[6] = 0xFF;
             k=7;
-            BBI2C_Start (&dev);
+            BBI2C_Start (&dev); /* continue at correct state of sda */
             BBI2C_Send_Byte (&dev, DEFAULT_EDID_R_ADDR);
         }
         else if (k==127 && edid[0]==0x00 && edid[7]==0x00 && edid[1]==0xFF && edid[2]==0xFF && edid[3]==0xFF
         && edid[4]==0xFF && edid[5]==0xFF && edid[6]==0xFF)
-        {
+        { /* edid correctly received */
           BBI2C_NACK (&dev);
           BBI2C_Stop (&dev);
           return edid;
         }
-        else if (k < 127) BBI2C_Ack (&dev);
-        else
+        else if (k < 127) BBI2C_Ack (&dev); /* ACK every byte */
+        else /* if header was not found yet at last byte */
         {
           if(cycle)
-          {
+          { /* restart request in order to get edid => cyclic */
             BBI2C_NACK (&dev);
             BBI2C_Stop (&dev);
             BBI2C_Start (&dev);
@@ -255,7 +262,7 @@ uint8_t * read_edid()
             cycle = 0;
           }
           else
-          {
+          { /* the second cycle of reading 0-127 did not succeed */
             edid[0] = 0xFF;
             return edid;
           }
@@ -270,10 +277,11 @@ uint8_t * read_edid()
   	}
   } while(retry);
 
-  edid[0] = 0xFF;
+  edid[0] = 0xFF; /* edid was not captured */
   return edid;
 }
 
+/* sending the whole EDID to the master */
 int write_edid (BBI2C_t *i2cdev01, uint8_t *edid)
 {
   uint8_t i, ack;
@@ -281,12 +289,12 @@ int write_edid (BBI2C_t *i2cdev01, uint8_t *edid)
   chprintf(&SDU1, "sending edid\r\n");
 
   for (i = 0; i < EDID_LENGTH; i++)
-  {
+  { /* sending 128 times */
     ack = BBI2C_Send_Byte_To_Master (i2cdev01, edid[i]);
       if (ack == 0) continue;
       else if (i == 127)
       {
-        if (ack == 1) return 0;
+        if (ack == 1) return 0; /* last byte must be NACKed */
       }
       else
       {

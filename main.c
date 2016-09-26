@@ -69,9 +69,9 @@ uint8_t dummyEDID[128] = /* Dummy EDID with wrong checksum */
 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01};
-uint8_t dummyCap[6] =
+uint8_t dummyCap[6] = /* capabilities for saving time for the real request */
 {0x6E, 0x83, 0xE3, 0x00, 0x00, 0x00};
-uint8_t dummyVCP[11]=
+uint8_t dummyVCP[11]= /* dummy vcp features for saving time */
 {0x6E, 0x88, 0x02, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00};
 
 
@@ -84,7 +84,7 @@ void BBI2C_Ack (BBI2C_t *dev);
 int atoi (const char *string);
 void Drive_SCL (BBI2C_t *dev, int scl);
 
-
+/* Module for the proxy functionality */
 static void cmd_proxy (BaseSequentialStream *chp, int argc, char *argv[])
 {
 //  DEBUG_INIT (chp);
@@ -137,6 +137,7 @@ static void cmd_proxy (BaseSequentialStream *chp, int argc, char *argv[])
       case MASTER_WRITE_REQUEST:
         break;
 
+      /* encountered a ddcci command */
       case MASTER_DDCCI_REQUEST:
         data = BBI2C_Get_Byte (&i2cdev01);
         if (data != MASTER_DDCCI_SOURCE_ADDRESS) break; /* break at wrong byte */
@@ -145,6 +146,7 @@ static void cmd_proxy (BaseSequentialStream *chp, int argc, char *argv[])
         data = BBI2C_Get_Byte (&i2cdev01);
         switch (ddcRequest[3])
         {
+          /* capabilies requested */
           case MASTER_DDCCI_CAPABILITY_REQUEST:
 
             if(ddcRequest[1] == 0xFF) /* invalid request */
@@ -153,6 +155,7 @@ static void cmd_proxy (BaseSequentialStream *chp, int argc, char *argv[])
               break;
             }
 
+            /* for the first request, the invalid checksum must be sent */
             if(firstCI)
             {
               if(data == MASTER_DDCCI_ANSWER_REQUEST)
@@ -180,6 +183,7 @@ static void cmd_proxy (BaseSequentialStream *chp, int argc, char *argv[])
                 if(ddcci_read_slave(capAnswer) < 0)
                 {
                   chprintf(chp, "failed reading ddc/ci, retrying\r\n");
+                  /* if the request to the slave failed, retry five times */
                   while(retrycap)
                   {
                     if(ddcci_write_slave (capRequest, 6) == 0)
@@ -197,7 +201,7 @@ static void cmd_proxy (BaseSequentialStream *chp, int argc, char *argv[])
             }
             /* Now, send this information to the host */
             uint8_t messageLength = capAnswer[1] & 0x7F;
-            if(data == MASTER_DDCCI_ANSWER_REQUEST)
+            if(data == MASTER_DDCCI_ANSWER_REQUEST) /* Master sent '6F' to read the answer */
             {
               chprintf(chp, "Ich sollte jetzt schreiben\r\n");
               signed int returncode;
@@ -216,10 +220,11 @@ static void cmd_proxy (BaseSequentialStream *chp, int argc, char *argv[])
             }
             break;
 
+          /* master requests the VCP features, same principle as for capability request */
           case MASTER_DDCCI_VCP_REQUEST:
             chprintf(chp, "chp request");
 
-            if (firstVCP)
+            if (firstVCP) /* first send the invalid VCP Feature answer */
             {
               if(data == MASTER_DDCCI_ANSWER_REQUEST)
               {
@@ -249,7 +254,7 @@ static void cmd_proxy (BaseSequentialStream *chp, int argc, char *argv[])
                 if(ddcci_read_slave(vcpAnswer) < 0)
                 {
                   chprintf(chp, "failed reading ddc/ci, retrying\r\n");
-                  while(retrycap)
+                  while(retrycap) /* retry, if reading of the slave failed */
                   {
                     if(ddcci_write_slave (ddcRequest, 5) == 0)
                     {
@@ -265,7 +270,7 @@ static void cmd_proxy (BaseSequentialStream *chp, int argc, char *argv[])
               }
             }
 
-            /* Send to Master */
+            /* Send the answer to the master */
             messageLength = 8;
             if(data == MASTER_DDCCI_ANSWER_REQUEST)
             {
@@ -285,6 +290,7 @@ static void cmd_proxy (BaseSequentialStream *chp, int argc, char *argv[])
             }
             break;
 
+          /* Master wants to set a specific vcp command */
           case MASTER_SET_CTRL_ADDRESS:
             if(ddcRequest[1] == 0xFF)
             {
@@ -299,6 +305,7 @@ static void cmd_proxy (BaseSequentialStream *chp, int argc, char *argv[])
             }
             break;
 
+          /* master wants to save the settings */
           case MASTER_SAVE_SETTINGS:
             if(ddcRequest[1] == 0xFF)
             {

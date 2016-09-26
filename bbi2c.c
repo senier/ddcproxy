@@ -165,6 +165,7 @@ static BBI2C_Event_t BBI2C_Event (BBI2C_t *dev)
     }
 }
 
+/* Read a byte from the master */
 uint8_t BBI2C_Get_Byte (BBI2C_t *dev)
 {
 
@@ -317,14 +318,14 @@ void BBI2C_NACK (BBI2C_t *dev)
     Delay_us (dev->delay_us);
 }
 
-
+/* Sends byte to slave by driving the SCL after a certain delay */
 int BBI2C_Send_Byte (BBI2C_t *dev, uint8_t data)
 {
     Drive_SCL (dev, 0);
 
     unsigned char i, ack_bit;
     for (i = 0; i < 8; i++)
-    {
+    { /* writing the bits */
         if ((data & 0x80) == 0)
         {
             Drive_SDA (dev, 0);
@@ -345,7 +346,7 @@ int BBI2C_Send_Byte (BBI2C_t *dev, uint8_t data)
      Drive_SDA (dev, 1);
      Delay_us (dev->delay_us);
      Release_SCL (dev);
-     ack_bit = Read_SDA (dev);
+     ack_bit = Read_SDA (dev); /* reading the ACK or NACK */
 
      Delay_us (dev->delay_us);
      Drive_SCL (dev, 0);
@@ -354,6 +355,7 @@ int BBI2C_Send_Byte (BBI2C_t *dev, uint8_t data)
      return (ack_bit == 0);
 }
 
+/* Receive a Byte from the Slave */
 void BBI2C_Recv_Byte (BBI2C_t *dev, uint8_t *result)
 {
     int i;
@@ -386,6 +388,7 @@ void BBI2C_Recv_Byte (BBI2C_t *dev, uint8_t *result)
    	return;
 }
 
+/* Sends a byte to the master by using a state machine */
 int BBI2C_Send_Byte_To_Master (BBI2C_t *dev, uint8_t data)
 {
     unsigned char ack_bit;

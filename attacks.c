@@ -50,6 +50,7 @@ uint8_t * edid_monitor_string_faker (uint8_t *edid)
     newEdid[i] = edid[i];
   }
 
+  /* search for the 00 00 FC 00 Block in the descriptor blocks */
   for(i = 54; i < length; i++)
   {
     if(edid[i] == 0x00)
@@ -60,7 +61,7 @@ uint8_t * edid_monitor_string_faker (uint8_t *edid)
             chprintf(&SDU1, "found sequence\r\n");
             for(k = 0; k < 13; k++)
             {
-              newEdid[i+4] = edidstring[k];
+              newEdid[i+4] = edidstring[k]; /* replaces by 'owned' */
               i++;
             }
             break;
@@ -87,6 +88,7 @@ uint8_t * edid_monitor_string_faker (uint8_t *edid)
   return newEdid;
 }
 
+/* fuzzes a random element of the EDID */
 uint8_t * edid_fuzzer_unary (uint8_t *savedEDID)
 {
   static uint8_t edid[128];
@@ -132,6 +134,7 @@ uint8_t * edid_fuzzer_unary (uint8_t *savedEDID)
   return edid;
 }
 
+/* modifies the complete EDID but the header and the checksum */
 uint8_t * edid_fuzzer_complete (void)
 {
   static uint8_t edid[128];
